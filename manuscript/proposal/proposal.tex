@@ -1,0 +1,171 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% ICML 2015 EXAMPLE LATEX SUBMISSION FILE %%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Use the following line _only_ if you're still using LaTeX 2.09.
+%\documentstyle[icml2015,epsf,natbib]{article}
+% If you rely on Latex2e packages, like most moden people use this:
+\documentclass{article}
+
+% use Times
+\usepackage{times}
+% For figures
+\usepackage{graphicx} % more modern
+%\usepackage{epsfig} % less modern
+\usepackage{subfigure} 
+
+% For citations
+\usepackage{natbib}
+
+% For algorithms
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% As of 2011, we use the hyperref package to produce hyperlinks in the
+% resulting PDF.  If this breaks your system, please commend out the
+% following usepackage line and replace \usepackage{icml2015} with
+% \usepackage[nohyperref]{icml2015} above.
+\usepackage{hyperref}
+
+% Packages hyperref and algorithmic misbehave sometimes.  We can fix
+% this with the following command.
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Employ the following version of the ``usepackage'' statement for
+% submitting the draft version of the paper for review.  This will set
+% the note in the first column to ``Under review.  Do not distribute.''
+%\usepackage{icml2015} 
+
+% Employ this version of the ``usepackage'' statement after the paper has
+% been accepted, when creating the final version.  This will set the
+% note in the first column to ``Proceedings of the...''
+\usepackage[accepted]{icml2015}
+
+
+% The \icmltitle you define below is probably too long as a header.
+% Therefore, a short form for the running title is supplied here:
+\icmltitlerunning{Efficient inference for Bayesian manifold-learning}
+
+\begin{document} 
+
+\twocolumn[
+\icmltitle{Efficient inference for Bayesian manifold-learning}
+
+% It is OKAY to include author information, even for blind
+% submissions: the style file will automatically remove it for you
+% unless you've provided the [accepted] option to the icml2015
+% package.
+\icmlauthor{Noah Apthorpe}{nja39@cornell.edu}
+\icmladdress{Computer Science}
+
+\icmlauthor{Josh Fass}{jf694@cornell.edu}
+\icmladdress{Computational Biology and Medicine}
+
+\icmlauthor{Maithra Raghu}{mr943@cornell.edu}
+\icmladdress{Computer Science}
+
+
+% You may provide any keywords that you 
+% find helpful for describing your paper; these are used to populate 
+% the "keywords" metadata in the PDF but will not be shown in the document
+\icmlkeywords{manifold-learning, variational EM, variational inference}
+
+\vskip 0.1in
+]
+
+\begin{abstract} 
+We propose to develop more efficient inference algorithms for a latent-variable model.
+\end{abstract} 
+
+\section{Motivation}
+Dimensionality reduction is a crucial ``toolbox'' operation in machine learning. Principal component analysis can optimally recover linear data manifolds, but can't represent curved/nonconvex mappings. Practical nonlinear manifold-learning methods are largely heuristic. A recently proposed Bayesian manifold-learning method has an appealing theoretical basis, but may not scale well to large datasets.
+
+\section{Problem Statement}
+\begin{enumerate}
+\itemsep-0.3em
+\item Implement the locally linear latent variable model
+\itemsep-0.3em
+\item Evaluate its performance on benchmark datasets
+\itemsep-0.3em
+\item Diagnose failure modes and performance limitations
+\itemsep-0.3em
+\item Implement more efficient approximate solvers
+\itemsep-0.3em
+\end{enumerate}
+
+\section{General Approach}
+\subsection{Goal}
+Our goal is to model the geometry of high-dimensional observations by recovering a low-dimensional embedding. Our general approach is to define a probabilistic model over manifold properties, then perform efficient Bayesian inference in this model.
+\subsection{Model}
+Our starting point will be the locally linear latent variable model (LL-LVM) proposed by Park et al. in 2014. The LL-LVM formalizes the intuition to preserve geometric properties of local neighborhoods within data between the high-dimensional observed space and a low-dimensional embedding. In the LL-LVM, each group of the following variables is Gaussian-distributed over the other two: high-dimensional observations, low-dimensional embedded locations, locally linear maps between high- and low- dimensional tangent spaces in each neighborhood.
+%\begin{itemize}
+%\itemsep0em
+%\item High-dimensional observations
+%\item Low-dimensional embedded locations
+%\item Locally linear maps between high- and low- dimensional tangent spaces in each neighborhood
+%\end{itemize}
+\subsection{Inference}
+Inference in this model is challenging. Our starting point is a variational expectation-maximization algorithm. We wish to infer the latent, low-dimensional representation and the parameters of the distribution from the data by using the EM (expectation maximization) algorithm. However it is usually intractable to compute the log likelihood function explicitly, so we first approximate using a distribution of only the latent variables, with parameters tuned to be as close to the target distribution as possible. We then iterate expectation maximization with respect to  our new distribution, which provides an approximation of the hidden quantities. Park et al. demonstrate the utility of this algorithm for synthetic datasets with up to 400 observations. It is unclear if the algorithm will scale efficiently to large datasets of practical interest, and no publicly available implementation of the algorithm has been published.
+
+We propose to develop more efficient algorithms for approximate inference in this model. After implementing Park et al.'s algorithm and diagnosing any limitations, we plan to evaluate the suitability of stochastic variational inference (Hoffman et al., 2013) and divide-and-conquer anchoring (Zhou et al., 2014).
+
+We will then characterize algorithm performance on synthetic datasets such as the ``swiss roll,'' and on a battery of real-world datasets of varying size and complexity. We are ultimately interested in practical applicability to datasets with up to millions of observations.
+
+\section{Resources}
+\subsection{Reading}
+\begin{enumerate}
+\item Representation learning: A review and new perspectives (Bengio et al., 2012) %\cite{Bengio12}
+\item Bayesian Manifold Learning: The Locally Linear Latent Variable Model (Park et al., 2014)% \cite{Park14}
+\item Dimensionality reduction: A comparative review (van der Maaten et al., 2008)
+\item \textit{Machine learning: A probabilistic approach} (Murphy, 2012) Chapters 5 (Bayes), 11 (EM), 12 (LVM), and 21-22 (variational inference)
+\end{enumerate}
+\subsection{Software}
+\begin{enumerate}
+\item Python/Scipy/Numpy for prototyping
+\item Cython/Numba/Theano for initial performance optimization
+\item sklearn.manifold for comparison to state-of-the-art heuristic algorithms
+\item PyLearn2 for comparison to state-of-the-art auto-encoder algorithms
+\end{enumerate}
+\subsection{Datasets}
+\subsubsection{Benchmark datasets}
+\begin{enumerate}
+\item Low-dimensional, synthetic: swiss roll, s-curve, helix, twinpeaks, broken swiss roll
+\item High-dimensional, synthetic: multiple manifolds (this would be relevant when observations could come from more than one cluster, e.g. 10 separate ``digit manifolds'')
+\item High-dimensional, computer vision: MNIST digits and COIL20. PyLearn2 has a comprehensive set of download/preprocessing scripts.
+\end{enumerate}
+\subsubsection{Application datasets}
+\begin{enumerate}
+\item Molecular dynamics: Protein simulation trajectories generated using OpenMM or from Folding@Home / D.E. Shaw Research (courtesy of Chodera Lab)
+\item Finance: Daily stock price history (Yahoo finance)
+\item Computer vision: Audience interest features
+\end{enumerate}
+
+\section{Schedule}
+\textbf{Weeks 1-2:} read papers and gather datasets\\
+\textbf{Weeks 2-3:} implement LL-LVM\\
+\textbf{Weeks 4-5:} finish implementation (if necessary), evaluate LL-LVM performance\\
+\textbf{Week 6:} brainstorm ideas for improvements \\
+\textbf{Weeks 7-10:} iteratively implement and test improvement ideas\\
+\textbf{Week 11-12:} synthesize results  and write report
+
+% In the unusual situation where you want a paper to appear in the
+% references without citing it in the main text, use \nocite
+%\nocite{langley00}
+
+%\section{References}
+\bibliography{proposal}
+\bibliographystyle{icml2015}
+
+\end{document} 
+
+
+% This document was modified from the file originally made available by
+% Pat Langley and Andrea Danyluk for ICML-2K. This version was
+% created by Lise Getoor and Tobias Scheffer, it was slightly modified  
+% from the 2010 version by Thorsten Joachims & Johannes Fuernkranz, 
+% slightly modified from the 2009 version by Kiri Wagstaff and 
+% Sam Roweis's 2008 version, which is slightly modified from 
+% Prasad Tadepalli's 2007 version which is a lightly 
+% changed version of the previous year's version by Andrew Moore, 
+% which was in turn edited from those of Kristian Kersting and 
+% Codrina Lauth. Alex Smola contributed to the algorithmic style files.  
