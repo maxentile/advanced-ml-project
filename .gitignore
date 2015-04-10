@@ -4,6 +4,8 @@
 ## Ignore cytometry datasets (~GB filesizes)
 *.fcs
 *.acs
+*.zip
+*.csv
 
 ## IPython notebook checkpoints
 .ipynb_checkpoints
