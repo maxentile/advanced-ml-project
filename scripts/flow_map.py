@@ -99,6 +99,11 @@ def flow_map(X,
              r_percentile=1.0,
              density_estimator=local_density_k,
              accept_prob_func=compute_accept_prob):
+
+    # to-do: need to implement edge pruning using time-data, as in paper
+    # namely, edges can only be drawn between points in the same timepoint or
+    # adjacent timepoints
+
     # Density-dependent downsampling
     est_density = density_estimator(X)
     accept_prob = accept_prob_func(est_density)
@@ -131,9 +136,8 @@ def flow_map(X,
     pos = nx.graphviz_layout(G)
     positions = np.array(pos.values())
     pl.scatter(positions[:,0],positions[:,1])
+    nx.draw_networkx_edges(G,pos=positions)
     pl.show()
-    #nx.draw(G,pos=positions)
-    #nx.draw_networkx_edges(G,pos=positions)
     return positions
 
 def main():
