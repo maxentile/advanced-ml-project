@@ -9,7 +9,7 @@ def local_density_k(X,k=10,metric=None):
         neighbor_graph = neighbors.kneighbors_graph(X,k,'distance')
     distances = np.array(neighbor_graph.mean(1))[:,0]
     #return np.exp(distances) * np.exp(distances.max())
-    return np.log(distances+1)
+    return distances
     #return np.exp(1-((distances - distances.min())/(distances.max() - distances.min())))
 
 def local_density_r(X,r=0.1,metric=None):
