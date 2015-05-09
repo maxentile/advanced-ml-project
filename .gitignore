@@ -10,6 +10,9 @@
 ## IPython notebook checkpoints
 .ipynb_checkpoints
 
+## Python bytecode
+*.pyc
+
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
