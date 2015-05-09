@@ -35,7 +35,7 @@ def generate_blobs(num_samples=5000,separation=8,ndim=2):
     return samples,density
 
 def generate_branches(num_samples=5000,
-                      branch_width=0.5,
+                      branch_width=5.0,
                       branch_length=5,
                       ndim=2):
 

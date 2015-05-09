@@ -21,14 +21,14 @@ class SPADE(BaseEstimator,TransformerMixin):
         if r != None:
             self.r=r
         else:
-            self.r=determine_r(X)
+            self.r=None
 
         if density_estimator=='k':
             self.density_estimator=lambda X: local_density_k_transformed(X,k)
         else:
             if density_estimator not in 'rk':
                 print('density_estimator not understood: defaulting to radial')
-            self.density_estimator=lambda X: local_density_r(X,r)
+            self.density_estimator=lambda X: local_density_r(X,determine_r(X))
 
         self.accept_prob_func=self.compute_accept_prob
 
@@ -54,6 +54,14 @@ class SPADE(BaseEstimator,TransformerMixin):
         ''' just output indices'''
         return accept_prob > np.random.rand(len(accept_prob))
 
+    def downsample(self,X):
+        if self.r == None:
+            self.r = determine_r(X)
+        scores = self.density_estimator(X)
+        accept_prob = self.compute_accept_prob(scores)
+        down_sampled_X = X[self.accept_according_to_probs(accept_prob)]
+        return down_sampled_X
+
     # compute cluster centers given cluster assignments
     def compute_cluster_centers(self,X,C):
         centers = np.zeros((len(set(C)),len(X.T)))
@@ -66,13 +74,10 @@ class SPADE(BaseEstimator,TransformerMixin):
 
         print('density-dependent downsampling...')
         # density-dependent downsampling
-        scores = self.density_estimator(X)
-        accept_prob = self.compute_accept_prob(scores)
-        down_sampled_X = X[self.accept_according_to_probs(accept_prob)]
+        down_sampled_X = self.downsample(X)
         print(len(X),len(down_sampled_X))
 
         print('clustering...')
-        # clustering
         cluster_model = AgglomerativeClustering(self.num_clusters)
         cluster_model.fit(down_sampled_X)
         cluster_pred = cluster_model.labels_
@@ -80,7 +85,6 @@ class SPADE(BaseEstimator,TransformerMixin):
 
 
         print('upsampling...')
-        # upsampling
         knn = neighbors.KNeighborsClassifier(1,metric='l1')
         knn.fit(down_sampled_X,cluster_pred)
         upsampled_cluster_pred = knn.predict(X)
@@ -88,7 +92,6 @@ class SPADE(BaseEstimator,TransformerMixin):
         norm_occupancy = (occupancy - occupancy.min()) / (occupancy.max() - occupancy.min())
 
         print('constructing graph...')
-        # graph construction
         def distance(x,y):
             return np.sqrt(np.sum((x-y)**2))
 
@@ -108,7 +111,8 @@ class SPADE(BaseEstimator,TransformerMixin):
 
         return cluster_centers,mst,norm_occupancy
 
-    def render(self,cluster_centers,mst,norm_occupancy,savefig=True,fname=''):
+    def render(self,cluster_centers,mst,norm_occupancy,
+              marker_scale=1.0,savefig=True,fname=''):
         pos = nx.graphviz_layout(mst)
         positions = np.zeros((len(pos),2))
         for p in pos:
@@ -116,9 +120,9 @@ class SPADE(BaseEstimator,TransformerMixin):
 
         for e in mst.edges():
             cpts = positions[np.array(e)]
-            plt.plot(cpts[:,0],cpts[:,1],c='grey',linewidth=1,zorder=1)
+            plt.plot(cpts[:,0],cpts[:,1],c='0.7',linewidth=1,zorder=1)
         plt.scatter(positions[:,0],positions[:,1],linewidth=0,zorder=10,
-                   c=cluster_centers[:,0],s=100+(200*norm_occupancy));
+                   c=cluster_centers[:,0],s=marker_scale*(100+(200*norm_occupancy)));
 
         plt.axis('off')
         if savefig:
@@ -130,7 +134,7 @@ class SPADE(BaseEstimator,TransformerMixin):
         for i in range(9):
             result = self.fit_transform(X)
             plt.subplot(3,3,i+1)
-            self.render(*result,savefig=False)
+            self.render(*result,savefig=False,marker_scale=0.1)
             results.append(result)
 
         if fname=='':
@@ -153,11 +157,49 @@ class SPADE(BaseEstimator,TransformerMixin):
 
 
 def main():
-    from synthetic_data import generate_blobs
-    samples,density = generate_blobs(10000,10)
+    # generate fake data
+    npr.seed(0)
+    from synthetic_data import generate_blobs,generate_branches
+    #samples,density = generate_blobs(10000,10)
+    samples,density = generate_branches(10000)
+
+    # plot fake data, colored by actual
+    plt.rcParams['font.family']='Serif'
+    cmap='rainbow'
+    s=2
+    plt.scatter(samples[:,0],samples[:,1],c=density,linewidths=0,s=s*4,cmap=cmap)
+    plt.title('Synthetic data: colored by actual density')
+    plt.savefig('synthetic_data.pdf')
+
     sp = SPADE()
-    _ = sp.fit_transform(samples,render=True)
-    #sp.multiview_fit_and_render(samples)
+
+    # plot data colored by estimated_density
+    est_density = sp.density_estimator(samples)
+    plt.scatter(samples[:,0],samples[:,1],c=est_density,linewidths=0,s=s*4,cmap=cmap)
+    plt.title('Synthetic data: colored by estimated density')
+    plt.savefig('synthetic_data_est_density.pdf')
+
+    # plot data colored by acceptance probability
+    accept_prob = sp.compute_accept_prob(est_density)
+    plt.scatter(samples[:,0],samples[:,1],c=accept_prob,linewidths=0,s=s*4,cmap=cmap)
+    plt.colorbar()
+    plt.title('Synthetic data: colored by accept_prob')
+    plt.savefig('synthetic_data_accept_prob.pdf')
+
+    # plot a few downsamplings of the data
+    plt.figure()
+    plt.title('Synthetic data: downsampled')
+    for i in range(4):
+        downsampled = sp.downsample(samples)
+        est_density = sp.density_estimator(downsampled)
+        plt.subplot(2,2,i+1)
+        plt.scatter(downsampled[:,0],downsampled[:,1],c=est_density,linewidths=0,s=s,cmap=cmap)
+
+    plt.savefig('synthetic_data_downsampled.pdf')
+
+    # plot results
+    #_ = sp.fit_transform(samples,render=True)
+    sp.multiview_fit_and_render(samples)
 
 
 if __name__=='__main__':
