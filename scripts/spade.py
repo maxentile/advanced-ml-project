@@ -150,9 +150,18 @@ class SPADE(BaseEstimator,TransformerMixin):
             results.append(result)
 
         if fname=='':
-            import time
-            t_str = time.strftime("%Y-%m-%d") + time.strftime(" (%I:%M:%S)")
-            fname = "spade_multiview "+ t_str + ".pdf"
+            import os.path
+            fname_pre = "spade_multiview"
+            fname_post = ".pdf"
+            fname = fname_pre + fname_post
+            if os.path.isfile(fname):
+                x = 1
+                fname_pre_x = fname_pre + '({0})'.format(x)
+                fname = fname_pre_x + fname_post
+                while os.path.isfile(fname):
+                    x +=1
+                    fname_pre_x = fname_pre + '({0})'.format(x)
+                    fname = fname_pre_x + fname_post
         plt.savefig(fname)
 
         return results
