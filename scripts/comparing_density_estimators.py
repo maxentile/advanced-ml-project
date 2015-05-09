@@ -6,7 +6,8 @@ from sklearn.neighbors import KernelDensity
 from sklearn.metrics import mutual_info_score
 from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
-from synthetic_data import generate_blobs
+from sklearn.datasets import make_blobs
+from synthetic_data import generate_blobs, generate_n_blobs
 from density_estimation import *
 
 def plot_estimator_pred(samples,density,estimator,params,
@@ -60,7 +61,6 @@ def sweep_estimator_accuracy(samples, density, estimator, sweep):
 def plot_scatter(samples,density,output_path=''):
     # produces scatterplot of first 2 dimensions of samples, colored by density
     plt.scatter(samples[:,0],samples[:,1], c=density, linewidth=0)
-    plt.show()
     if output_path != '':
       plt.savefig(output_path, format='pdf')
     return
@@ -68,17 +68,25 @@ def plot_scatter(samples,density,output_path=''):
 
 def main():
     samples,density = generate_blobs(5000,10)
-    sampleshd, densityhd = generate_blobs(5000,10,10)
-    r = np.arange(0.01, 3, 0.1) #[0.01,0.1,0.25,0.5,1.0,2.0]
+    r = [0.01,0.1,0.25,0.5,1.0,2.0] #np.arange(0.01, 3, 0.1) #[0.01,0.1,0.25,0.5,1.0,2.0]
     #plot_estimator_pred(samples,density,local_density_r,r,'r')
     plt.figure()
-    k = np.arange(1,300,15) #[1,5,10,50,100,200]
-    #plot_scatter(sampleshd, densityhd)
-    #plot_estimator_pred(samples,density,local_density_k_transformed,k,'k')
-    #sweep_estimator_accuracy(samples, density, local_density_k_transformed, k)
-    #sweep_estimator_accuracy(samples, density, local_density_r, r)
-    sweep_estimator_accuracy(sampleshd, densityhd, local_density_k_transformed, k)
-    sweep_estimator_accuracy(sampleshd, densityhd, local_density_r, r)
+    k = [1,5,10,50,100,200] #np.arange(1,500,15) #[1,5,10,50,100,200]
+    plot_scatter(samples, density)
+    
+    plt.figure()
+    plot_estimator_pred(samples, density, lambda x, kk: local_density_k_transformed(x,kk,'l1'), k, 'k')
+    plt.figure()
+    plot_estimator_pred(samples, density, local_density_k_transformed, k, 'k')
+    plt.figure()
+    plot_estimator_pred(samples, density, lambda x, rr: local_density_r(x,rr,'l1'), r, 'r')
+    plt.figure()
+    plot_estimator_pred(samples, density, local_density_r, r, 'r')
+    
+    sweep_estimator_accuracy(samples, density, lambda x, kk: local_density_k_transformed(x,kk,'l1'), k)
+    sweep_estimator_accuracy(samples, density, local_density_k_transformed, k)
+    sweep_estimator_accuracy(samples, density, lambda x, rr: local_density_r(x,rr,'l1'), r)
+    sweep_estimator_accuracy(samples, density, local_density_r, r)
     plt.show()
 
     """

@@ -23,4 +23,4 @@ def local_density_r(X,r=0.1,metric=None):
     else:
         neighbor_graph = neighbors.radius_neighbors_graph(X,r)
     counts = np.array(neighbor_graph.sum(1))[:,0]
-    return ((counts - counts.min())/np.max(1,counts.max() - counts.min()))
+    return ((counts - counts.min())/(1+ counts.max() - counts.min()))

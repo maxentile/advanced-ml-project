@@ -8,6 +8,15 @@ def hypercube(ndim=2):
     corner_list = [corners for _ in xrange(ndim)]
     return np.array([i for i in itertools.product(*corner_list)])
 
+def generate_n_blobs(num_samples=5000, nblobs=10,separation=8,ndim=2):
+    centers = np.random.rand(nblobs, ndim)
+    centers *= separation
+    kde = KernelDensity()
+    kde.fit(centers)
+    samples = kde.sample(num_samples)
+    density = np.exp(kde.score_samples(samples))
+    return samples,density
+
 def generate_blobs(num_samples=5000,separation=8,ndim=2):
 #    centers = np.array([[0,0],[1,0],[0,1],[1,1]],dtype=float)
 #    centers -= 0.5
