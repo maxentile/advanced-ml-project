@@ -29,6 +29,12 @@ url = 'http://www.nature.com/nbt/journal/v29/n10/extref/nbt.1991-S3.zip'
 target = '../data/spade/Qiu_SPADE_MouseBM.zip'
 files.append((url,target))
 
+# 3. Download data from DREMI paper
+urls = [u for u in urls.data/ABM
+
+baseurl = 'http://www.c2b2.columbia.edu/danapeerlab/html/'
+dataurls = ['dremi/data/ERKKO/erkko_ungated_series2.zip']
+
 
 def main():
 
