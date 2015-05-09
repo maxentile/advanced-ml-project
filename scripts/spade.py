@@ -2,6 +2,7 @@ import numpy as np
 import numpy.random as npr
 import matplotlib.pyplot as plt
 from sklearn import neighbors
+from density_estimation import local_density_k_transformed,determine_r,local_density_r
 from sklearn.neighbors import KernelDensity
 from sklearn.cluster import AgglomerativeClustering
 import networkx as nx
@@ -12,38 +13,24 @@ class SPADE(BaseEstimator,TransformerMixin):
                   num_clusters=50,
                   density_estimator='r', # or 'k'
                   k=20,
-                  r=1.0):
+                  r=None):
 
         self.num_clusters = num_clusters
 
+        self.k=k
+        if r != None:
+            self.r=r
+        else:
+            self.r=determine_r(X)
+
         if density_estimator=='k':
-            self.density_estimator=lambda X: self.local_density_k(X,k)
+            self.density_estimator=lambda X: local_density_k_transformed(X,k)
         else:
             if density_estimator not in 'rk':
                 print('density_estimator not understood: defaulting to radial')
-            self.density_estimator=lambda X: self.local_density_r(X,r)
+            self.density_estimator=lambda X: local_density_r(X,r)
 
-        self.k=k
-        self.r=r
         self.accept_prob_func=self.compute_accept_prob
-
-    def local_density_k(self,X,k=10,metric=None):
-        if metric != None:
-            bt = neighbors.BallTree(X,200,metric=metric)
-            neighbor_graph = neighbors.kneighbors_graph(X,k,'distance')
-        else:
-            neighbor_graph = neighbors.kneighbors_graph(X,k,'distance')
-        distances = np.array(neighbor_graph.mean(1))[:,0]
-        return 1-((distances - distances.min())/(distances.max() - distances.min()))
-
-    def local_density_r(self,X,r=0.1,metric=None):
-        if metric != None:
-            bt = neighbors.BallTree(X,200,metric=metric)
-            neighbor_graph = neighbors.radius_neighbors_graph(bt,r)
-        else:
-            neighbor_graph = neighbors.radius_neighbors_graph(X,r)
-        counts = np.array(neighbor_graph.sum(1))[:,0]
-        return ((counts - counts.min())/(counts.max() - counts.min()))
 
     def compute_accept_prob(self,densities,
                             outlier_density_percentile=1.0,
