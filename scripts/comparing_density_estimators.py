@@ -73,6 +73,10 @@ def main():
     #samples,density = generate_blobs(5000,10)
     samples,density = generate_n_blobs(5000,10,ndim=10)
     r = [0.01,0.1,0.25,0.5,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0] #np.arange(0.01, 3, 0.1) #[0.01,0.1,0.25,0.5,1.0,2.0]
+
+    r_spade = np.array([determine_r(samples) for _ in range(100)])
+    print(r_spade.mean(),r_spade.std())
+
     #plot_estimator_pred(samples,density,local_density_r,r,'r')
     plt.figure()
     k = [1,5,10,50,100,200] #np.arange(1,500,15) #[1,5,10,50,100,200]
