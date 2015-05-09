@@ -11,7 +11,7 @@ def local_density_k(X,k=10,metric=None):
     #return np.exp(distances) * np.exp(distances.max())
     #return distances
     return 1-((distances - distances.min())/(distances.max() - distances.min()))
-    
+
 def local_density_k_transformed(X, k, metric=None):
   result = local_density_k(X, k, metric)
   return np.exp(result**2)
@@ -23,4 +23,4 @@ def local_density_r(X,r=0.1,metric=None):
     else:
         neighbor_graph = neighbors.radius_neighbors_graph(X,r)
     counts = np.array(neighbor_graph.sum(1))[:,0]
-    return ((counts - counts.min())/(counts.max() - counts.min()))
+    return ((counts - counts.min())/np.max(1,counts.max() - counts.min()))

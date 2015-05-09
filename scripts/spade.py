@@ -10,8 +10,7 @@ from sklearn.base import BaseEstimator,TransformerMixin
 class SPADE(BaseEstimator,TransformerMixin):
     def __init__(self,
                   num_clusters=50,
-                  density_estimator='r',
-                  # or 'r'
+                  density_estimator='r', # or 'k'
                   k=20,
                   r=1.0):
 
@@ -76,7 +75,7 @@ class SPADE(BaseEstimator,TransformerMixin):
             centers[i] = np.mean(points,0)
         return centers
 
-    def fit_transform(self,X):
+    def fit_transform(self,X,render=False):
 
         print('density-dependent downsampling...')
         # density-dependent downsampling
@@ -116,33 +115,57 @@ class SPADE(BaseEstimator,TransformerMixin):
         G = distance_graph(cluster_centers)
         mst = nx.minimum_spanning_tree(G)
 
-        print('rendering...')
-        # rendering
+        if render:
+            print('rendering...')
+            self.render(cluster_centers,mst,norm_occupancy)
+
+        return cluster_centers,mst,norm_occupancy
+
+    def render(self,cluster_centers,mst,norm_occupancy,savefig=False,fname=''):
         pos = nx.graphviz_layout(mst)
         positions = np.zeros((len(pos),2))
         for p in pos:
             positions[p] = pos[p]
 
-
         for e in mst.edges():
             cpts = positions[np.array(e)]
             plt.plot(cpts[:,0],cpts[:,1],c='black',linewidth=2)
-        #pl.scatter(down_sampled_X[:,0],down_sampled_X[:,1],c=cluster_pred,linewidths=0,alpha=0.5)
         plt.scatter(positions[:,0],positions[:,1],
                    c=cluster_centers[:,0],s=100+(200*norm_occupancy));
 
         plt.axis('off')
-        import time
-        t_str = time.strftime("%Y-%m-%d") + time.strftime(" (%I:%M:%S)")
-        plt.savefig("spade "+ t_str + ".pdf")
+        if savefig:
+            if fname=='':
+                import time
+                t_str = time.strftime("%Y-%m-%d") + time.strftime(" (%I:%M:%S)")
+                fname = "spade "+ t_str + ".pdf"
+            plt.savefig(fname)
 
-        return cluster_centers,mst
+    def multiview_fit_and_render(self,X,fname=''):
+        results = []
+        for i in range(9):
+            result = self.fit_transform(X)
+            plt.subplot(3,3,i+1)
+            self.render(*result)
+            results.append(result)
+
+        if fname=='':
+            import time
+            t_str = time.strftime("%Y-%m-%d") + time.strftime(" (%I:%M:%S)")
+            fname = "spade_multiview "+ t_str + ".pdf"
+        plt.savefig(fname)
+
+        return results
+
+
 
 def main():
     from synthetic_data import generate_blobs
     samples,density = generate_blobs(10000,10)
     sp = SPADE()
-    _ = sp.fit_transform(samples)
+    #_ = sp.fit_transform(samples,savefig=True)
+    sp.multiview_fit_and_render(samples)
+
 
 if __name__=='__main__':
     main()
