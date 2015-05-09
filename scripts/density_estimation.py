@@ -13,8 +13,9 @@ def local_density_k(X,k=10,metric=None):
     return 1-((distances - distances.min())/(distances.max() - distances.min()))
 
 def local_density_k_transformed(X, k, metric=None):
+  d = X.shape[1]
   result = local_density_k(X, k, metric)
-  return np.exp(result**2)
+  return np.exp(result**d)
 
 def local_density_r(X,r=0.1,metric=None):
     if metric != None:

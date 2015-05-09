@@ -27,6 +27,8 @@ def plot_estimator_pred(samples,density,estimator,params,
                    #cmap='spectral',
                    alpha=0.5,
                    )
+        padding=0.05
+        plt.ylim(density.min()-(density.min()*padding),density.max()*(1+padding))
         plt.title(param_name+'={0}'.format(params[i]))
         plt.axis('off')
 
@@ -44,8 +46,8 @@ def sweep_estimator_accuracy(samples, density, estimator, sweep):
       pred_density = estimator(samples, s)
       pd = np.vstack(pred_density)
       linearModel = LinearRegression()
-      linearModel.fit(d, pd)
-      r2 = linearModel.score(d, pd)
+      linearModel.fit(pd,d)
+      r2 = linearModel.score(pd,d)
       #mutual_info = mutual_info_score(density, pred_density)
       result_r2.append(r2)
       #result_mutual_info.append(mutual_info)
@@ -67,26 +69,37 @@ def plot_scatter(samples,density,output_path=''):
 
 
 def main():
-    samples,density = generate_blobs(5000,10)
-    r = [0.01,0.1,0.25,0.5,1.0,2.0] #np.arange(0.01, 3, 0.1) #[0.01,0.1,0.25,0.5,1.0,2.0]
+    npr.seed(0)
+    #samples,density = generate_blobs(5000,10)
+    samples,density = generate_n_blobs(5000,10,ndim=10)
+    r = [0.01,0.1,0.25,0.5,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0] #np.arange(0.01, 3, 0.1) #[0.01,0.1,0.25,0.5,1.0,2.0]
     #plot_estimator_pred(samples,density,local_density_r,r,'r')
     plt.figure()
     k = [1,5,10,50,100,200] #np.arange(1,500,15) #[1,5,10,50,100,200]
     plot_scatter(samples, density)
-    
+    plt.title('Synthetic data')
+
     plt.figure()
     plot_estimator_pred(samples, density, lambda x, kk: local_density_k_transformed(x,kk,'l1'), k, 'k')
+    plt.title('K-nearest, L1')
     plt.figure()
     plot_estimator_pred(samples, density, local_density_k_transformed, k, 'k')
+    plt.title('K-nearest, L2')
     plt.figure()
     plot_estimator_pred(samples, density, lambda x, rr: local_density_r(x,rr,'l1'), r, 'r')
+    plt.title('r-sphere, L1')
     plt.figure()
     plot_estimator_pred(samples, density, local_density_r, r, 'r')
-    
+    plt.title('r-sphere, L2')
+
     sweep_estimator_accuracy(samples, density, lambda x, kk: local_density_k_transformed(x,kk,'l1'), k)
+    plt.title('K-nearest, L1')
     sweep_estimator_accuracy(samples, density, local_density_k_transformed, k)
+    plt.title('K-nearest, L2')
     sweep_estimator_accuracy(samples, density, lambda x, rr: local_density_r(x,rr,'l1'), r)
+    plt.title('r-sphere, L1')
     sweep_estimator_accuracy(samples, density, local_density_r, r)
+    plt.title('r-sphere, L2')
     plt.show()
 
     """
