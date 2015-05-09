@@ -121,7 +121,7 @@ class SPADE(BaseEstimator,TransformerMixin):
 
         return cluster_centers,mst,norm_occupancy
 
-    def render(self,cluster_centers,mst,norm_occupancy,savefig=False,fname=''):
+    def render(self,cluster_centers,mst,norm_occupancy,savefig=True,fname=''):
         pos = nx.graphviz_layout(mst)
         positions = np.zeros((len(pos),2))
         for p in pos:
@@ -129,16 +129,13 @@ class SPADE(BaseEstimator,TransformerMixin):
 
         for e in mst.edges():
             cpts = positions[np.array(e)]
-            plt.plot(cpts[:,0],cpts[:,1],c='black',linewidth=2)
-        plt.scatter(positions[:,0],positions[:,1],
+            plt.plot(cpts[:,0],cpts[:,1],c='grey',linewidth=1,zorder=1)
+        plt.scatter(positions[:,0],positions[:,1],linewidth=0,zorder=10,
                    c=cluster_centers[:,0],s=100+(200*norm_occupancy));
 
         plt.axis('off')
         if savefig:
-            if fname=='':
-                import time
-                t_str = time.strftime("%Y-%m-%d") + time.strftime(" (%I:%M:%S)")
-                fname = "spade "+ t_str + ".pdf"
+            fname = "spade.pdf"
             plt.savefig(fname)
 
     def multiview_fit_and_render(self,X,fname=''):
@@ -146,7 +143,7 @@ class SPADE(BaseEstimator,TransformerMixin):
         for i in range(9):
             result = self.fit_transform(X)
             plt.subplot(3,3,i+1)
-            self.render(*result)
+            self.render(*result,savefig=False)
             results.append(result)
 
         if fname=='':
@@ -172,8 +169,8 @@ def main():
     from synthetic_data import generate_blobs
     samples,density = generate_blobs(10000,10)
     sp = SPADE()
-    #_ = sp.fit_transform(samples,savefig=True)
-    sp.multiview_fit_and_render(samples)
+    _ = sp.fit_transform(samples,render=True)
+    #sp.multiview_fit_and_render(samples)
 
 
 if __name__=='__main__':

@@ -5,6 +5,7 @@ from sklearn import neighbors
 from sklearn.neighbors import KernelDensity
 from sklearn.metrics import mutual_info_score
 from sklearn.metrics import r2_score
+from sklearn.linear_model import LinearRegression
 from synthetic_data import generate_blobs
 from density_estimation import *
 
@@ -32,19 +33,26 @@ def plot_estimator_pred(samples,density,estimator,params,
 
 # during sweeps over parameters r and k, compute R^2, mutual information of predicted vs.
 # actual density
-def sweep_estimator_accuracy(samples, density, estimator, sweep, plot=False):
+def sweep_estimator_accuracy(samples, density, estimator, sweep):
     # to-do: produce plot
     # return the curves
     result_r2 = []
     result_mutual_info = []
+    d = np.vstack(density)
     for s in sweep:
       pred_density = estimator(samples, s)
-      r2 = r2_score(density, pred_density)
-      mutual_info = mutual_info_score(density, pred_density)
-      result_r2.append(r2) 
-      result_mutual_info.append(mutual_info)
+      pd = np.vstack(pred_density)
+      linearModel = LinearRegression()
+      linearModel.fit(d, pd)
+      r2 = linearModel.score(d, pd)
+      #mutual_info = mutual_info_score(density, pred_density)
+      result_r2.append(r2)
+      #result_mutual_info.append(mutual_info)
     plt.figure()
-    plt.plot(sweep, result_r2)
+    plt.plot(sweep, result_r2, '-o', lw = 2, markersize=6)
+    plt.ylabel(r'$R^2$ Score', fontsize=14)
+    plt.ylim((0,1))
+    plt.grid()
     #plt.figure()
     #plt.plot(sweep, result_mutual_info)
 
@@ -60,11 +68,19 @@ def plot_scatter(samples,density,output_path=''):
 
 def main():
     samples,density = generate_blobs(5000,10)
-    r = [0.01,0.1,0.25,0.5,1.0,2.0]
+    sampleshd, densityhd = generate_blobs(5000,10,10)
+    r = np.arange(0.01, 3, 0.1) #[0.01,0.1,0.25,0.5,1.0,2.0]
     #plot_estimator_pred(samples,density,local_density_r,r,'r')
     plt.figure()
-    k = [1,5,10,50,100,200]
-    
+    k = np.arange(1,300,15) #[1,5,10,50,100,200]
+    #plot_scatter(sampleshd, densityhd)
+    #plot_estimator_pred(samples,density,local_density_k_transformed,k,'k')
+    #sweep_estimator_accuracy(samples, density, local_density_k_transformed, k)
+    #sweep_estimator_accuracy(samples, density, local_density_r, r)
+    sweep_estimator_accuracy(sampleshd, densityhd, local_density_k_transformed, k)
+    sweep_estimator_accuracy(sampleshd, densityhd, local_density_r, r)
+    plt.show()
+
     """
     transforms = [(lambda x:x, 'id'), (np.log, 'log'), (np.exp, 'exp'), (np.sqrt, 'sqrt'), (lambda x: np.exp(x**2), 'exp(x^d)')]
     for t in transforms:
@@ -74,12 +90,7 @@ def main():
       plt.savefig('../figures' + t[1] + '.png')
       plt.title(t[1])
     """
-    plot_scatter(samples, density)
-    plot_estimator_pred(samples,density,local_density_k_transformed,k,'k')
-    sweep_estimator_accuracy(samples, density, local_density_k_transformed, k)
-    #sweep_estimator_accuracy(samples, density, local_density_r, r)
-    plt.show()
-    
+
 
 if __name__=='__main__':
     main()
