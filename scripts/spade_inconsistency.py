@@ -27,12 +27,12 @@ def main():
     for ((points,density),name) in data:
         print(name)
         for density_estimator in ('k','r'):
-            for i in range(9):
-                sp = SPADE(density_estimator=density_estimator)
-                result = sp.fit_transform(points)
-                sp.render(*result,fname='spade-' + name + ', ' + density_estimator + '-{0}.pdf'.format(i+1))
-                plt.close()
-            #sp.multiview_fit_and_render(name + '.pdf')
+            #for i in range(9):
+            #    sp = SPADE(density_estimator=density_estimator)
+            #    result = sp.fit_transform(points)
+            #    sp.render(*result,fname='spade-' + name + ', ' + density_estimator + '-{0}.pdf'.format(i+1))
+            #    plt.close()
+            sp.multiview_fit_and_render(name + ', ' + density_estimator + '.pdf')
 
 
     # save results as multi-panel figures

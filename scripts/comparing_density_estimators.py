@@ -36,7 +36,7 @@ def plot_estimator_pred(samples,density,estimator,params,
 
 # during sweeps over parameters r and k, compute R^2, mutual information of predicted vs.
 # actual density
-def sweep_estimator_accuracy(samples, density, estimator, sweep):
+def sweep_estimator_accuracy(samples, density, estimator, sweep, render=False):
     # to-do: produce plot
     # return the curves
     result_r2 = []
@@ -51,11 +51,14 @@ def sweep_estimator_accuracy(samples, density, estimator, sweep):
       #mutual_info = mutual_info_score(density, pred_density)
       result_r2.append(r2)
       #result_mutual_info.append(mutual_info)
-    plt.figure()
-    plt.plot(sweep, result_r2, '-o', lw = 2, markersize=6)
-    plt.ylabel(r'$R^2$ Score', fontsize=14)
-    plt.ylim((0,1))
-    plt.grid()
+
+    if render:
+      plt.figure()
+      plt.plot(sweep, result_r2, '-o', lw = 2, markersize=6)
+      plt.ylabel(r'$R^2$ Score', fontsize=14)
+      plt.ylim((0,1))
+      plt.grid()
+    return result_r2
     #plt.figure()
     #plt.plot(sweep, result_mutual_info)
 
@@ -69,20 +72,24 @@ def plot_scatter(samples,density,output_path=''):
 
 
 def main():
+    plt.rcParams['font.family']='Serif'
     npr.seed(0)
     #samples,density = generate_blobs(5000,10)
     samples,density = generate_n_blobs(5000,10,ndim=10)
-    r = [0.01,0.1,0.25,0.5,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0] #np.arange(0.01, 3, 0.1) #[0.01,0.1,0.25,0.5,1.0,2.0]
+    #r = [0.01,0.1,0.25,0.5,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0] #np.arange(0.01, 3, 0.1) #[0.01,0.1,0.25,0.5,1.0,2.0]
+    r = np.arange(0,20,0.1)
 
     r_spade = np.array([determine_r(samples) for _ in range(100)])
     print(r_spade.mean(),r_spade.std())
 
     #plot_estimator_pred(samples,density,local_density_r,r,'r')
     plt.figure()
-    k = [1,5,10,50,100,200] #np.arange(1,500,15) #[1,5,10,50,100,200]
+    k = np.arange(1,200,1)
+    #k = [1,5,10,50,100,200] #np.arange(1,500,15) #[1,5,10,50,100,200]
     plot_scatter(samples, density)
     plt.title('Synthetic data')
 
+    # scatter plots
     plt.figure()
     plot_estimator_pred(samples, density, lambda x, kk: local_density_k_transformed(x,kk,'l1'), k, 'k')
     plt.title('K-nearest, L1')
@@ -96,15 +103,34 @@ def main():
     plot_estimator_pred(samples, density, local_density_r, r, 'r')
     plt.title('r-sphere, L2')
 
-    sweep_estimator_accuracy(samples, density, lambda x, kk: local_density_k_transformed(x,kk,'l1'), k)
-    plt.title('K-nearest, L1')
-    sweep_estimator_accuracy(samples, density, local_density_k_transformed, k)
-    plt.title('K-nearest, L2')
-    sweep_estimator_accuracy(samples, density, lambda x, rr: local_density_r(x,rr,'l1'), r)
-    plt.title('r-sphere, L1')
-    sweep_estimator_accuracy(samples, density, local_density_r, r)
-    plt.title('r-sphere, L2')
-    plt.show()
+    l1_k = sweep_estimator_accuracy(samples, density, lambda x, kk: local_density_k_transformed(x,kk,'l1'), k)
+    l2_k = sweep_estimator_accuracy(samples, density, local_density_k_transformed, k)
+    plt.figure()
+    plt.plot(k,l1_k,label=r'$\ell_1$',linewidth=2)
+    plt.plot(k,l2_k,label=r'$\ell_2$',linewidth=2)
+    plt.title(r'$k$-nearest-based density-estimator accuracy')
+    plt.legend()
+    plt.xlabel(r'$k$')
+    plt.ylabel(r'$R^2$')
+    plt.ylim(0,1)
+    #plt.show()
+    plt.savefig('../figures/paper/density-estimation/k-nearest.pdf')
+
+
+    plt.figure()
+    l1_r = sweep_estimator_accuracy(samples, density, lambda x, rr: local_density_r(x,rr,'l1'), r)
+    l2_r = sweep_estimator_accuracy(samples, density, local_density_r, r)
+
+    plt.plot(r,l1_r,label=r'$\ell_1$',linewidth=2)
+    plt.plot(r,l2_r,label=r'$\ell_2$',linewidth=2)
+    plt.title(r'$r$-sphere-based density-estimator accuracy')
+    plt.legend()
+    plt.xlabel(r'$r$')
+    plt.ylabel(r'$R^2$')
+    plt.ylim(0,1)
+    #plt.show()
+    plt.savefig('../figures/paper/density-estimation/r-sphere.pdf')
+    
 
     """
     transforms = [(lambda x:x, 'id'), (np.log, 'log'), (np.exp, 'exp'), (np.sqrt, 'sqrt'), (lambda x: np.exp(x**2), 'exp(x^d)')]
