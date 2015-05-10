@@ -9,6 +9,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.datasets import make_blobs
 from synthetic_data import generate_blobs, generate_n_blobs
 from density_estimation import *
+from scipy.spatial.distance import squareform,pdist
 
 def plot_estimator_pred(samples,density,estimator,params,
                          param_name='r'):
@@ -75,17 +76,26 @@ def main():
     plt.rcParams['font.family']='Serif'
     npr.seed(0)
     #samples,density = generate_blobs(5000,10)
-    samples,density = generate_n_blobs(5000,10,ndim=10)
+    #samples,density = generate_n_blobs(5000,10,ndim=10)
+    samples,density = generate_n_blobs(5000,10,ndim=50)
+
     #r = [0.01,0.1,0.25,0.5,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0] #np.arange(0.01, 3, 0.1) #[0.01,0.1,0.25,0.5,1.0,2.0]
-    r = np.arange(0,20,0.1)
+    #r = np.hstack((np.arange(0,5,5),np.arange(5,10,0.5),np.arange(10,25,5),np.arange(25,56,2)))
+    r = np.arange(0,60,0.1)
 
-    r_spade = np.array([determine_r(samples) for _ in range(100)])
-    print(r_spade.mean(),r_spade.std())
+    k = np.arange(1,200,10)
+    #k = [1,5,10,50,100,200] #np.arange(1,500,15) #[1,5,10,50,100,200]
 
+    #r_spade = np.array([determine_r(samples) for _ in range(100)])
+    #print(r_spade.mean(),r_spade.std())
+    r_spade = determine_r(samples)
+
+    l1_distmat = squareform(pdist(samples,'minkowski',1))
+    l2_distmat = squareform(pdist(samples))
+
+    '''
     #plot_estimator_pred(samples,density,local_density_r,r,'r')
     plt.figure()
-    k = np.arange(1,200,1)
-    #k = [1,5,10,50,100,200] #np.arange(1,500,15) #[1,5,10,50,100,200]
     plot_scatter(samples, density)
     plt.title('Synthetic data')
 
@@ -101,10 +111,12 @@ def main():
     plt.title('r-sphere, L1')
     plt.figure()
     plot_estimator_pred(samples, density, local_density_r, r, 'r')
-    plt.title('r-sphere, L2')
+    plt.title('r-sphere, L2')'''
 
     l1_k = sweep_estimator_accuracy(samples, density, lambda x, kk: local_density_k_transformed(x,kk,'l1'), k)
     l2_k = sweep_estimator_accuracy(samples, density, local_density_k_transformed, k)
+    #l1_k = sweep_estimator_accuracy(np.sort(l1_distmat,1), density, lambda x, kk: local_density_k_transformed(x,kk,'precomputed',True), k)
+    #l2_k = sweep_estimator_accuracy(np.sort(l2_distmat,1), density, lambda x, kk: local_density_k_transformed(x,kk,'precomputed',True), k)
     plt.figure()
     plt.plot(k,l1_k,label=r'$\ell_1$',linewidth=2)
     plt.plot(k,l2_k,label=r'$\ell_2$',linewidth=2)
@@ -116,21 +128,25 @@ def main():
     #plt.show()
     plt.savefig('../figures/paper/density-estimation/k-nearest.pdf')
 
-
     plt.figure()
-    l1_r = sweep_estimator_accuracy(samples, density, lambda x, rr: local_density_r(x,rr,'l1'), r)
-    l2_r = sweep_estimator_accuracy(samples, density, local_density_r, r)
+    #l1_r = sweep_estimator_accuracy(samples, density, lambda x, rr: local_density_r(x,rr,'l1'), r)
+    #l2_r = sweep_estimator_accuracy(samples, density, local_density_r, r)
+
+    l1_r = sweep_estimator_accuracy(l1_distmat, density, lambda x, rr: local_density_r(x,rr,'precomputed'), r)
+    l2_r = sweep_estimator_accuracy(l2_distmat, density, lambda x, rr: local_density_r(x,rr,'precomputed'), r)
 
     plt.plot(r,l1_r,label=r'$\ell_1$',linewidth=2)
     plt.plot(r,l2_r,label=r'$\ell_2$',linewidth=2)
     plt.title(r'$r$-sphere-based density-estimator accuracy')
+    plt.vlines(r_spade,0,1,linestyle='--',label=r'$r$ selected by SPADE')
     plt.legend()
     plt.xlabel(r'$r$')
     plt.ylabel(r'$R^2$')
+
     plt.ylim(0,1)
     #plt.show()
     plt.savefig('../figures/paper/density-estimation/r-sphere.pdf')
-    
+
 
     """
     transforms = [(lambda x:x, 'id'), (np.log, 'log'), (np.exp, 'exp'), (np.sqrt, 'sqrt'), (lambda x: np.exp(x**2), 'exp(x^d)')]
