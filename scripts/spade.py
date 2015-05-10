@@ -342,6 +342,9 @@ class SPADE_alt(BaseEstimator,TransformerMixin):
         return cluster_centers,mst
 
 if __name__=='__main__':
+    output_format = '.png'
+    dpi=300
+
     # generate fake data
     npr.seed(0)
     from synthetic_data import generate_blobs,generate_branches
@@ -354,7 +357,7 @@ if __name__=='__main__':
     s=2
     plt.scatter(samples[:,0],samples[:,1],c=density,linewidths=0,s=s*4,cmap=cmap)
     plt.title('Synthetic data: colored by actual density')
-    plt.savefig('synthetic_data.pdf')
+    plt.savefig('synthetic_data' + output_format,dpi=dpi)
 
 
     #sp = SPADE_alt(density_estimator='eps-neighbors')
@@ -368,14 +371,14 @@ if __name__=='__main__':
         est_density = sp.density_estimator(samples)
         plt.scatter(samples[:,0],samples[:,1],c=est_density,linewidths=0,s=s*4,cmap=cmap)
         plt.title('Synthetic data: colored by estimated density')
-        plt.savefig('synthetic_data_est_density'+suffix+'.pdf')
+        plt.savefig('synthetic_data_est_density'+suffix+output_format,dpi=dpi)
 
         # plot data colored by acceptance probability
         accept_prob = sp.compute_accept_prob(est_density)
         plt.scatter(samples[:,0],samples[:,1],c=accept_prob,linewidths=0,s=s*4,cmap=cmap)
         plt.colorbar()
         plt.title('Synthetic data: colored by accept_prob')
-        plt.savefig('synthetic_data_accept_prob'+suffix+'.pdf')
+        plt.savefig('synthetic_data_accept_prob'+suffix+output_format,dpi=dpi)
 
         # plot a few downsamplings of the data
         plt.figure()
@@ -386,7 +389,7 @@ if __name__=='__main__':
             plt.subplot(2,2,i+1)
             plt.scatter(downsampled[:,0],downsampled[:,1],c=est_density,linewidths=0,s=s,cmap=cmap)
 
-        plt.savefig('synthetic_data_downsampled'+suffix+'.pdf')
+        plt.savefig('synthetic_data_downsampled'+suffix+output_format,dpi=dpi)
 
     make_plots(SPADE(density_estimator='r'),'_r')
     plt.close()
