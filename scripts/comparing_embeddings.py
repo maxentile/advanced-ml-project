@@ -3,6 +3,9 @@ import numpy as np
 import pylab as plt
 import seaborn as sns
 from sklearn import neighbors
+from scipy.cluster import hierarchy
+from scipy.spatial import distance
+from scipy.spatial.distance import squareform,pdist
 
 def one_nn_class_baseline(X,labels):
     ''' given a pointcloud X and labels, compute the classification accuracy of
@@ -105,3 +108,16 @@ def plot_1nn_classification_comparison():
     pl.savefig('../figures/embedding-comparison.pdf')
 
 #def plot_neighborhood_preservation()
+
+
+# metrics of cluster preservation
+
+linkages = ['single','complete','ward','average','weighted','centroid','median']
+
+def pairwise_cophenetic_distances(X,linkage='single'):
+    return hierarchy.cophenet(hierarchy.linkage(X,linkage))
+
+def cophenetic_distance_preservation(orig,embedding,linkage='single'):
+    orig_d = pairwise_cophenetic_distances(orig,linkage)
+    embed_d = pairwise_cophenetic_distances(embedding,linkage)
+    return spearmanr(orig_d,embed_d)

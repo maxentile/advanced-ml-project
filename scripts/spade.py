@@ -150,12 +150,14 @@ class SPADE_alt(BaseEstimator,TransformerMixin):
                  density_estimator='k-nearest',# or 'kde' or 'eps-neighbors'
                  k=20,
                  r=1.0,
-                 verbose=True):
+                 verbose=True,
+                 naive_accept_prob=False):
         self.num_clusters=num_clusters
         self.density_estimator = density_estimator
         self.k=k
         self.r=r
         self.verbose=verbose
+        self.naive_accept_prob=naive_accept_prob
 
     def local_density_k(self,X,k=10,metric=None):
         if metric != None:
@@ -226,7 +228,34 @@ class SPADE_alt(BaseEstimator,TransformerMixin):
         # "down-sample"
         if self.verbose:
             print("Down-sampling...")
-        accept_prob = 1 - (scores - scores.min()) / (scores.max() - scores.min())
+
+        def compute_accept_prob_spade(densities,
+                                outlier_density_percentile=1.0,
+                                target_density_percentile=3.0):
+            ''' densities is a vector of densities '''
+            OD = np.percentile(densities,outlier_density_percentile)
+            TD = np.percentile(densities,target_density_percentile)
+
+            accept_prob = np.zeros(len(densities))
+
+            for i,LD in enumerate(densities):
+                if LD < OD:
+                    accept_prob[i] = 0.0
+                elif LD > OD and LD <= TD:
+                    accept_prob[i] = 1.0
+                elif LD > TD:
+                    accept_prob[i] = TD/LD
+            return accept_prob
+
+        def compute_accept_prob_naive(densities):
+            ''' densities is a vector of densities '''
+            accept_prob = 1.0 - (scores - scores.min()) / (scores.max() - scores.min())
+            return accept_prob
+
+        if self.naive_accept_prob:
+            accept_prob = compute_accept_prob_naive(scores)
+        else:
+            accept_prob = compute_accept_prob_spade(scores)
 
         down_sampled_X = []
         down_sampled_i = []
@@ -327,35 +356,43 @@ if __name__=='__main__':
     plt.title('Synthetic data: colored by actual density')
     plt.savefig('synthetic_data.pdf')
 
-    #sp = SPADE()
-    sp = SPADE_alt()
-    '''
 
-    # plot data colored by estimated_density
-    est_density = sp.density_estimator(samples)
-    plt.scatter(samples[:,0],samples[:,1],c=est_density,linewidths=0,s=s*4,cmap=cmap)
-    plt.title('Synthetic data: colored by estimated density')
-    plt.savefig('synthetic_data_est_density.pdf')
+    #sp = SPADE_alt(density_estimator='eps-neighbors')
 
-    # plot data colored by acceptance probability
-    accept_prob = sp.compute_accept_prob(est_density)
-    plt.scatter(samples[:,0],samples[:,1],c=accept_prob,linewidths=0,s=s*4,cmap=cmap)
-    plt.colorbar()
-    plt.title('Synthetic data: colored by accept_prob')
-    plt.savefig('synthetic_data_accept_prob.pdf')
+    # using r-based estimator
+    #sp = SPADE(density_estimator='r')
 
-    # plot a few downsamplings of the data
-    plt.figure()
-    plt.title('Synthetic data: downsampled')
-    for i in range(4):
-        downsampled = sp.downsample(samples)
-        est_density = sp.density_estimator(downsampled)
-        plt.subplot(2,2,i+1)
-        plt.scatter(downsampled[:,0],downsampled[:,1],c=est_density,linewidths=0,s=s,cmap=cmap)
+    def make_plots(sp,suffix='_r'):
 
-    plt.savefig('synthetic_data_downsampled.pdf')'''
+        # plot data colored by estimated_density
+        est_density = sp.density_estimator(samples)
+        plt.scatter(samples[:,0],samples[:,1],c=est_density,linewidths=0,s=s*4,cmap=cmap)
+        plt.title('Synthetic data: colored by estimated density')
+        plt.savefig('synthetic_data_est_density'+suffix+'.pdf')
+
+        # plot data colored by acceptance probability
+        accept_prob = sp.compute_accept_prob(est_density)
+        plt.scatter(samples[:,0],samples[:,1],c=accept_prob,linewidths=0,s=s*4,cmap=cmap)
+        plt.colorbar()
+        plt.title('Synthetic data: colored by accept_prob')
+        plt.savefig('synthetic_data_accept_prob'+suffix+'.pdf')
+
+        # plot a few downsamplings of the data
+        plt.figure()
+        plt.title('Synthetic data: downsampled')
+        for i in range(4):
+            downsampled = sp.downsample(samples)
+            est_density = sp.density_estimator(downsampled)
+            plt.subplot(2,2,i+1)
+            plt.scatter(downsampled[:,0],downsampled[:,1],c=est_density,linewidths=0,s=s,cmap=cmap)
+
+        plt.savefig('synthetic_data_downsampled'+suffix+'.pdf')
+
+    make_plots(SPADE(density_estimator='r'),'_r')
+    make_plots(SPADE(density_estimator='k'),'_k')
+
     # plot results
-    sp.fit_transform(samples)
-    plt.show()
+    #sp.fit_transform(samples)
+    #plt.show()
     #_ = sp.fit_transform(samples,render=True)
     #sp.multiview_fit_and_render(samples)

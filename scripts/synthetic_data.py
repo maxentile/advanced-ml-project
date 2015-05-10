@@ -5,7 +5,7 @@ import itertools
 
 def hypercube(ndim=2):
     corners = [-1,1]
-    corner_list = [corners for _ in xrange(ndim)]
+    corner_list = [corners for _ in np.arange(ndim)]
     return np.array([i for i in itertools.product(*corner_list)])
 
 def generate_n_blobs(num_samples=5000, nblobs=10,separation=8,ndim=2):
