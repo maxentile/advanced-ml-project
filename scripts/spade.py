@@ -92,17 +92,8 @@ class SPADE(BaseEstimator,TransformerMixin):
         norm_occupancy = (occupancy - occupancy.min()) / (occupancy.max() - occupancy.min())
 
         print('constructing graph...')
-        def distance(x,y):
-            return np.sqrt(np.sum((x-y)**2))
 
-        def distance_graph(centers):
-            G = nx.Graph()
-            for i in range(len(centers)-1):
-                for j in range(i+1,len(centers)):
-                    G.add_edge(i,j,weight=distance(centers[i],centers[j]))
-            return G
-
-        G = distance_graph(cluster_centers)
+        G = self.distance_graph(cluster_centers)
         mst = nx.minimum_spanning_tree(G)
 
         if render:
@@ -154,9 +145,174 @@ class SPADE(BaseEstimator,TransformerMixin):
 
         return results
 
+class SPADE_alt(BaseEstimator,TransformerMixin):
+    def __init__(self,num_clusters=50,
+                 density_estimator='k-nearest',# or 'kde' or 'eps-neighbors'
+                 k=20,
+                 r=1.0,
+                 verbose=True):
+        self.num_clusters=num_clusters
+        self.density_estimator = density_estimator
+        self.k=k
+        self.r=r
+        self.verbose=verbose
+
+    def local_density_k(self,X,k=10,metric=None):
+        if metric != None:
+            bt = neighbors.BallTree(X,200,metric=metric)
+            neighbor_graph = neighbors.kneighbors_graph(X,k,'distance')
+        else:
+            neighbor_graph = neighbors.kneighbors_graph(X,k,'distance')
+        distances = np.array(neighbor_graph.mean(1))[:,0]
+        return 1-((distances - distances.min())/(distances.max() - distances.min()))
+
+    def local_density_r(self,X,r=0.1,metric=None):
+        if metric != None:
+            bt = neighbors.BallTree(X,200,metric=metric)
+            neighbor_graph = neighbors.radius_neighbors_graph(bt,r)
+        else:
+            neighbor_graph = neighbors.radius_neighbors_graph(X,r)
+        counts = np.array(neighbor_graph.sum(1))[:,0]
+        return ((counts - counts.min())/(counts.max() - counts.min()))
+
+    def distance(self,x,y):
+        return np.sqrt(np.sum((x-y)**2))
+
+    def distance_graph(self,centers):
+        G = nx.Graph()
+        for i in range(len(centers)-1):
+            for j in range(i+1,len(centers)):
+                G.add_edge(i,j,weight=self.distance(centers[i],centers[j]))
+        return G
+
+    def fit_transform(self,X):
+        num_points = len(X)
+
+        from time import time
+        t0 = time()
+        if self.verbose:
+            print("Estimating density...")
+
+        if self.density_estimator not in ['KDE','k-nearest','eps-neighbors']:
+            print('invalid density_estimator, defaulting to k-nearest')
+            density_estimator = 'k-nearest'
+
+        if self.density_estimator == 'k-nearest':
+            scores = self.local_density_k(X,self.k)
+            #scores = local_density_k_transformed(X,self.k)
+        if self.density_estimator == 'eps-neighbors':
+            scores = self.local_density_r(X,self.r)
+        if self.density_estimator == 'kde':
+
+            from sklearn.grid_search import GridSearchCV
+
+            # this snippet from documentation:
+            # http://scikit-learn.org/stable/auto_examples/neighbors/plot_digits_kde_sampling.html
+            params = {'bandwidth': np.logspace(-1, 1, 20)}
+            grid = GridSearchCV(KernelDensity(), params)
+            grid.fit(samples)
+
+            print("best bandwidth: {0}".format(grid.best_estimator_.bandwidth))
+
+            # use the best estimator to compute the kernel density estimate
+            kde = grid.best_estimator_
+            # estimate density
+            kde.fit(X)
+            scores = kde.score_samples(X)
+
+        if self.verbose:
+            print("Done! Elapsed time: {0:.2f}s".format(time() - t0))
+
+        # "down-sample"
+        if self.verbose:
+            print("Down-sampling...")
+        accept_prob = 1 - (scores - scores.min()) / (scores.max() - scores.min())
+
+        down_sampled_X = []
+        down_sampled_i = []
+        for i in range(num_points):
+            if npr.rand() < accept_prob[i]:
+                down_sampled_i.append(i)
+                down_sampled_X.append(X[i])
+        down_sampled_X = np.array(down_sampled_X)
+        if self.verbose:
+            print("Done! Reduced data from {1} to {2} points. Elapsed time: {0:.2f}s".format(time() - t0,len(X),len(down_sampled_X)))
+
+            print("Clustering...")
+        # cluster down-sampled data
+        cluster_model = AgglomerativeClustering(self.num_clusters)
+        cluster_model.fit(down_sampled_X)
+
+        # compute cluster centers
+        cluster_pred = cluster_model.labels_
+        cluster_centers = []
+        for i in range(self.num_clusters):
+            cluster_centers.append(np.mean(down_sampled_X[cluster_pred==i],0))
+        cluster_centers = np.array(cluster_centers)
+
+        if self.verbose:
+            print("Done! Elapsed time: {0:.2f}s".format(time() - t0))
+
+            print("Up-sampling...")
+
+        knn = neighbors.KNeighborsClassifier(1,metric='l1')
+        knn.fit(down_sampled_X,cluster_pred)
+        upsampled_cluster_pred = knn.predict(X)
+        # "up-sample" (assign all points to nearest cluster center)
+        #upsampled_cluster_pred = assign_to_nearest_landmark(X,cluster_centers)
+
+        # compute normalized cluster occupancies
+        occupancy = np.array([sum(upsampled_cluster_pred==i) for i in range(self.num_clusters)])
+        norm_occupancy = (occupancy - occupancy.min()) / (occupancy.max() - occupancy.min())
+
+        if self.verbose:
+            print("Done! Elapsed time: {0:.2f}s".format(time() - t0))
+
+            print("Computing MST...")
+        # compute MST
+        G = self.distance_graph(cluster_centers)
+        mst = nx.minimum_spanning_tree(G)
+        if self.verbose:
+            print("Done! Elapsed time: {0:.2f}s".format(time() - t0))
 
 
-def main():
+            print("Plotting SPADE tree...")
+        # plot SPADE tree
+        if X.shape[1] == 2:
+            print("Plotting overlay on data")
+            plt.scatter(X[:,0],X[:,1],c=upsampled_cluster_pred,linewidths=0,alpha=0.5)
+            plt.scatter(cluster_centers[:,0],cluster_centers[:,1]);
+            for e in mst.edges():
+                cpts = cluster_centers[np.array(e)]
+                plt.plot(cpts[:,0],cpts[:,1],c='black',linewidth=2)
+            plt.axis('off')
+
+            plt.figure()
+
+        # set positions by force-directed layout
+        pos = nx.graphviz_layout(mst)
+        positions = np.zeros((len(pos),2))
+        for p in pos:
+            positions[p] = pos[p]
+
+        # if the data is 2D, we can optionally use cluster centers
+        #if X.shape[1] == 2:
+        #    positions = cluster_centers
+
+        for e in mst.edges():
+            cpts = positions[np.array(e)]
+            plt.plot(cpts[:,0],cpts[:,1],c='black',linewidth=2)
+        #plt.scatter(down_sampled_X[:,0],down_sampled_X[:,1],c=cluster_pred,linewidths=0,alpha=0.5)
+        plt.scatter(positions[:,0],positions[:,1],
+                   c=cluster_centers[:,0],s=100+(200*norm_occupancy));
+
+        plt.axis('off')
+
+        print("Done! Total elapsed time: {0:.2f}s".format(time() - t0))
+
+        return cluster_centers,mst
+
+if __name__=='__main__':
     # generate fake data
     npr.seed(0)
     from synthetic_data import generate_blobs,generate_branches
@@ -171,7 +327,9 @@ def main():
     plt.title('Synthetic data: colored by actual density')
     plt.savefig('synthetic_data.pdf')
 
-    sp = SPADE()
+    #sp = SPADE()
+    sp = SPADE_alt()
+    '''
 
     # plot data colored by estimated_density
     est_density = sp.density_estimator(samples)
@@ -195,12 +353,9 @@ def main():
         plt.subplot(2,2,i+1)
         plt.scatter(downsampled[:,0],downsampled[:,1],c=est_density,linewidths=0,s=s,cmap=cmap)
 
-    plt.savefig('synthetic_data_downsampled.pdf')
-
+    plt.savefig('synthetic_data_downsampled.pdf')'''
     # plot results
+    sp.fit_transform(samples)
+    plt.show()
     #_ = sp.fit_transform(samples,render=True)
-    sp.multiview_fit_and_render(samples)
-
-
-if __name__=='__main__':
-    main()
+    #sp.multiview_fit_and_render(samples)
