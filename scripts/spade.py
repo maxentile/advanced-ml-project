@@ -389,6 +389,7 @@ if __name__=='__main__':
         plt.savefig('synthetic_data_downsampled'+suffix+'.pdf')
 
     make_plots(SPADE(density_estimator='r'),'_r')
+    plt.close()
     make_plots(SPADE(density_estimator='k'),'_k')
 
     # plot results
