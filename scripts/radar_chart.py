@@ -10,6 +10,7 @@ polygon is not aligned with the radial axes.
 .. [1] http://en.wikipedia.org/wiki/Radar_chart
 """
 import numpy as np
+import numpy.random as npr
 
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
@@ -115,7 +116,8 @@ def unit_poly_verts(theta):
 
 if __name__ == '__main__':
     all_linkages = ['single','complete','ward','average','weighted','centroid','median']
-    algorithms = ['ATPE','Hybrid-ATPE','t-SNE','PCA','KPCA']
+    algorithms = ['ATPE','Hybrid-ATPE (add)','Hybrid-ATPE (normalize-add)',
+                 't-SNE','PCA']#,'KPCA']
     results = dict()
 
     from comparing_embeddings import multi_linkage_cophenetic_preservation
@@ -124,27 +126,52 @@ if __name__ == '__main__':
     data = datasets.load_digits()
     #n = 1000
     n = len(data.data)
+    #n=200
     X = data.data[:n]
     Y = data.target[:n]
+
+    npr.seed(0)
 
     print('Starting ATPE...')
 
     from tpe import TPE
-    tpe = TPE('complete')
-    X_tpe = tpe.fit_transform(X)
-    results['ATPE'] = multi_linkage_cophenetic_preservation(X,X_tpe)
+    res_tpe = []
+    for i in range(5):
+        print(i)
+        tpe = TPE('complete')
+        X_tpe = tpe.fit_transform(X)
+        res_tpe.append(multi_linkage_cophenetic_preservation(X,X_tpe))
 
-    print('Starting Hybrid-ATPE...')
+    results['ATPE'] = np.array(res_tpe).mean(0)
+
+    print('Starting Hybrid-ATPE (add)...')
     from tpe import HybridTPE
-    htpe = HybridTPE(linkages=all_linkages,combination_method='normalize-add')
-    X_htpe = htpe.fit_transform(X)
-    results['Hybrid-ATPE'] = multi_linkage_cophenetic_preservation(X,X_htpe)
+    res_htpe = []
+    for i in range(5):
+        print(i)
+        htpe = HybridTPE(linkages=all_linkages,combination_method='add')
+        X_htpe = htpe.fit_transform(X)
+        res_htpe.append(multi_linkage_cophenetic_preservation(X,X_htpe))
+    results['Hybrid-ATPE (add)'] = np.array(res_htpe).mean(0)
+
+    print('Starting Hybrid-ATPE (normalize-add)...')
+    res_htpe=[]
+    for i in range(5):
+        print(i)
+        htpe = HybridTPE(linkages=all_linkages,combination_method='normalize-add')
+        X_htpe = htpe.fit_transform(X)
+        res_htpe.append(multi_linkage_cophenetic_preservation(X,X_htpe))
+    results['Hybrid-ATPE (normalize-add)'] = np.array(res_htpe).mean(0)
 
     print('Starting t-SNE...')
     from sklearn.manifold import TSNE
-    tsne = TSNE()
-    X_tsne = tsne.fit_transform(X)
-    results['t-SNE'] = multi_linkage_cophenetic_preservation(X,X_tsne)
+    res_tsne = []
+    for i in range(10):
+        print(i)
+        tsne = TSNE()
+        X_tsne = tsne.fit_transform(X)
+        res_tsne.append(multi_linkage_cophenetic_preservation(X,X_tsne))
+    results['t-SNE'] = np.array(res_tsne).mean(0)
 
     print('Starting PCA...')
     from sklearn.decomposition import PCA
@@ -152,12 +179,11 @@ if __name__ == '__main__':
     X_pca = pca.fit_transform(X)
     results['PCA'] = multi_linkage_cophenetic_preservation(X,X_pca)
 
-    print('Starting KPCA...')
+    '''print('Starting KPCA...')
     from sklearn.decomposition import KernelPCA
     kpca = KernelPCA(n_components=2,kernel='rbf',gamma=0.05)
     X_kpca = kpca.fit_transform(X)
-    results['KPCA'] = multi_linkage_cophenetic_preservation(X,X_kpca)
-
+    results['KPCA'] = multi_linkage_cophenetic_preservation(X,X_kpca)'''
 
     N = len(all_linkages)
     theta = radar_factory(N, frame='polygon')
@@ -196,4 +222,4 @@ if __name__ == '__main__':
                 ha='center', color='black', weight='bold', size='large')
     #plt.show()
 
-    plt.savefig('radar_chart.pdf')
+    plt.savefig('radar_chart_repeats.pdf')
