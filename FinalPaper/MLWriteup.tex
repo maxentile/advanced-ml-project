@@ -44,7 +44,7 @@
 
 % The \icmltitle you define below is probably too long as a header.
 % Therefore, a short form for the running title is supplied here:
-\icmltitlerunning{Submission and Formatting Instructions for ICML 2015}
+\icmltitlerunning{TITLE}
 
 \begin{document} 
 
@@ -65,7 +65,7 @@
 % You may provide any keywords that you 
 % find helpful for describing your paper; these are used to populate 
 % the "keywords" metadata in the PDF but will not be shown in the document
-\icmlkeywords{boring formatting information, machine learning, ICML}
+%\icmlkeywords{boring formatting information, machine learning, ICML}
 
 \vskip 0.3in
 ]
@@ -98,9 +98,8 @@ Sensitivity to small clusters -- Identifying minimal residual disease
 
 Several domain-specific algorithms have been developed to address these analysis tasks, most notably SPADE \cite{}, FLOW-MAP \cite{}, Wanderlust \cite{}, DREMI/DREVI \cite{}, and viSNE \cite{}.  However, some limitations of these algorithms indicate the need for improved solutions.  First, none of these methods can be easily related to an underlying probabilistic model. This makes them prone to unpredictable structure-distorting behavior which can lead to misleading outputs. Second, these methods do not quantify how confident researchers should be when using the result to support experimental conclusions.
 
-Here, we investigate SPADE, a widely used mass cytometry analysis algorithm,  and comment on its inconsistencies when applied to generated datasets with known ground truth (\S\ref{sec:spade}). This analysis indicates that SPADE may generate inaccurate results when applied to real datasets, suggesting the need for improvements.  We propose several improvements to the density-dependent downsampling component of SPADE  (\S\ref{sec:downsampling}), as well as an alternative approach to producing low-dimensional embeddings under similar constraints (\S\ref{sec:approximate_tpe}).   
+Here, we investigate SPADE, a widely used mass cytometry analysis algorithm,  and comment on its inconsistencies when applied to generated datasets with known ground truth (\S\ref{sec:spade}). This analysis indicates that SPADE may generate inaccurate results when applied to real datasets, suggesting the need for improvements.  We also propose an alternative algorithm to perform density estimation for the density-dependent downsampling component of SPADE  (\S\ref{sec:downsampling}) that results in more accurate downsamplings with greater stability over its parameter space. Finally, we describe an alternative approach to producing low-dimensional embeddings under constraints simlar to those assumed by existing cytometry analysis algorithms (\S\ref{sec:approximate_tpe}).   MORE ABOUT APPROX TPE. 
 
- INCLUDE QUANTITATIVE IMPROVEMENTS ONCE SECTIONS ARE WRITTEN
 
 \section{SPADE Inconsistency Analysis}
 \label{sec:spade}
@@ -130,21 +129,21 @@ SPADE, or Spanning-tree Progression Analysis of Density-normalized Events \cite{
 
 While SPADE is a significant improvement over previous manual data analysis techniques, 
 %several fundamental components of the underlying algorithm
-we are concerned that its  sub-component algorithms and ad-hoc parameter settings may lead to inconsistent and potentially misleading outputs.  Because biologists interpret SPADE visualizations to support or refute hypotheses, it is important that SPADE and related cytometry analysis algorithms  yield reproducible results that do not  inject structure into visualizations that do not exist in the raw data. 
+we are concerned that its  sub-component algorithms and ad-hoc parameter settings may lead to inconsistent and potentially misleading outputs.  Because biologists interpret SPADE visualizations to support or refute hypotheses, it is important that SPADE and related cytometry analysis algorithms  yield reproducible results and do not  inject structure into visualizations that do not exist in the raw data. 
 
-We examine the behavior of SPADE by generating synthetic datasets and comparing their known ground-truth structure to SPADE output visualizations.  Figure \ref{fig:spade_analysis} shows the results of this analysis for 3 synthetic datasets constructed by sampling points from  mixtures of Gaussian distributions in two dimensions.% centered at several cluster centers. 
+We examined the behavior of SPADE by generating synthetic datasets and comparing their known ground-truth structure to SPADE output visualizations.  Figure \ref{fig:spade_analysis} presents the results of this analysis for a particular 2-dimensional dataset with clear spatial structure.  Nine consecutive runs of SPADE on this dataset with the same parameters yielded the visualizations shown---all with wildly different trees and nont with the clear ``X'' shaped structure present in the input data.  % constructed by sampling points from  mixtures of Gaussian distributions in two dimensions.% centered at several cluster centers. 
  
-We see that artificial structure is imposed when there is none
+%We see that artificial structure is imposed when there is none
 
-Shortening and thickening the branches complicates the underlying minimum spanning tree further, so we also tried running SPADE on this
+%Shortening and thickening the branches complicates the underlying minimum spanning tree further, so we also tried running SPADE on this
 
-Finally, as SPADE outputs a visualization highly dependent on there being an easily discoverable minimum spanning tree, we tested the algorithm on a dataset that is highly disconnected - four distinct, highly separated clusters.
+%Finally, as SPADE outputs a visualization highly dependent on there being an easily discoverable minimum spanning tree, we tested the algorithm on a dataset that is highly disconnected - four distinct, highly separated clusters.
 
 \begin{figure}
 \begin{center}
 \includegraphics[width = 0.49\textwidth]{figures/synthetic_data.pdf}
 \includegraphics[width = 0.49\textwidth]{figures/spade_multiview.pdf}
-\caption{CAPTION}
+\caption{Results of running 9 identical instances of SPADE (\textit{bottom}) on a 2-dimensional synthesized dataset (\textit{top}). }
 \label{fig:spade_analysis}
 \end{center}
 \end{figure}
@@ -161,7 +160,9 @@ Finally, as SPADE outputs a visualization highly dependent on there being an eas
 %Below is one such example of a dataset, with clusters colored to look more distinct, and cluster centers joined up with each other in the order they were produced.
 
 
-We see that SPADE performs inconsistently and inaccurately on even simple synthetic datasets. While these datasets might not be identical to the single cell datasets on which SPADE is most commonly used, the popularity and diverse uses for the algorithm mean that it is especially important for it to be very robust, which is worryingly not the case.
+This example, which corroborates with the results of similar analyses (not shown), indicates that SPADE performs inconsistently and inaccurately on even simple synthetic datasets. 
+%While such datasets might not be identical to the single cell datasets on which SPADE is most commonly used,
+ SPADE's inability to recover the structure of simple constructed example data makes us hesitate to trust its visualizations on much more complex single-cell data. The popularity of SPADE as a general-purpose cytometry analysis tool for a wide range of experiments means that it should be much more robust to variations in input data than our experiments indicate. 
 
 
 
@@ -171,15 +172,15 @@ Both SPADE and FLOW-MAP algorithms for analyzing mass cytometry data involve den
 
 Density-dependent downsampling requires a way to estimate the local density at a point $p$, $D(p)$, to determine the probability of including $p$ in the sampled subset.  SPADE and FLOW-MAP estimate $D(p)$ by counting the number of points within a threshold L1-distance $r$ of $p$. However, this density estimation technique is inadequately justified.
 
-To compare the accuracy of multiple density estimation algorithms, we performed numerical experiments with generated synthetic datasets. First, we drew 5000 points from a scikit-learn kernel density estimator \cite{} fit to 4 distinct cluster centers in 2 dimensions and 10 distinct cluster centers in 10 dimensions (Figure \ref{fig:ddd_data_2d}). The “ground truth” local density for each point was calculated by scoring the points using the fit kernel density estimator.  We then compared these ground truth densities to the output of four potential density estimation algorithms:
+To compare the accuracy of multiple density estimation algorithms, we performed numerical experiments with generated synthetic datasets. First, we drew 5000 points from a scikit-learn kernel density estimator \cite{} fit to distinct cluster centers in 2, 10, and 50 dimensions (e.g. Figure \ref{fig:ddd_data_2d}). The “ground truth” local density for each point was calculated by scoring the points using the fit kernel density estimator.  We then compared these ground truth densities to the output of four potential density estimation algorithms:
 
-%\begin{figure}
-%\begin{center}
-%\includegraphics[width=0.35\textwidth]{Figures/ddd_data_2d.png}
-%\end{center}
-%\caption{Example 2-dimensional synthetic dataset generated for density estimation algorithm analysis.  Point color corresponds to ``ground truth" local density.}
-%\label{fig:ddd_data_2d}
-%\end{figure}
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.35\textwidth]{Figures/ddd_data_2d.png}
+\end{center}
+\caption{Example 2-dimensional synthetic dataset generated for density estimation algorithm analysis.  Point color corresponds to ``ground truth" local density.}
+\label{fig:ddd_data_2d}
+\end{figure}
 
 \begin{enumerate}
 \item \textbf{Radius Threshold, L1:} The density estimation technique used by SPADE and FLOW-MAP. For each point $p$, the local density $D(p)$ is estimated as the count of points within a threshold L1-distance $r$ of $p$. 
@@ -194,32 +195,40 @@ To compare the accuracy of multiple density estimation algorithms, we performed 
 
 \end{enumerate}
 
-Figure \ref{fig:ddd_results} shows algorithm performance for a range of parameter values $r$ and $k$ measured as the $R^2$ coefficient of determination of a linear model fit to the predicted density versus the ground truth density.   Specific results of interest are the maximum $R^2$ value for each algorithm (indicating the approximate maximum accuracy of the algorithm on this particular dataset), the range of parameter values corresponding to high $R^2$ coefficients, and the general trend of the $R^2$ values over the parameter space. 
+Figure \ref{fig:ddd_results} shows algorithm performance for a range of parameter values $r$ and $k$ measured as the Spearman correlation coefficient $\rho$ of the predicted density versus the ground truth density.   Specific results of interest are the maximum $\rho$ value for each algorithm (indicating the approximate maximum accuracy of the algorithm on this particular dataset), the range of parameter values corresponding to high $\rho$ coefficients, and the general trend of the $\rho$ values over the parameter space. 
 
-Although the Radius Threshold density estimator has a higher maximum $R^2$ value than the K-Nearest Neighbor estimator in both 2 and 10 dimensions, the K-Nearest Neighbor estimator provides much more stable estimates over a range of $k$ and accuracy monotonically increasing with $k$. These stability and monotonicity properties would make the K-Nearest Neighbor estimator a better choice for algorithms such as SPADE and FLOW-MAP.  This is especially true considering the difficulty of choosing an appropriate value of $r$ or $k$ given an experimental dataset.  Unlike the synthesized datasets used for algorithm analysis, cytometry datasets input to SPADE and FLOW-MAP do not come with a ``ground truth'' density.  SPADE arbitrarily chooses $r$ to be a user-selected parameter $\alpha$ times the median 1-nearest neighbor distance between a randomly selected subset of 2000 data points. Using this heuristic on our synthesized datasets corresponds to the red dotted line in Figure \ref{fig:ddd_results} and results in a suboptimal density estimation. The K-Nearest Neighbor estimator avoids this ``needle in a haystack’’ parameter selection problem.
+Both the  Radius Threshold and K-Nearest Neighbor density estimators have maximum $\rho$ values near 1 in all three dimensions. However, the K-Nearest Neighbor estimator provides stably accurate estimates with $k$ ranging from $<2\%$ to $20\%$ of the number of points in the dataset, while the accuracy of the Radius Threshold estimator peaks in a narrow range of values of $r$. 
+ % and accuracy monotonically increasing with $k$. 
+This stability to parameter setting would make the K-Nearest Neighbor estimator a better choice for algorithms such as SPADE and FLOW-MAP.  This is especially true considering the difficulty of choosing an appropriate value of $r$ or $k$ given an experimental dataset.  Unlike the synthesized datasets used for algorithm analysis, cytometry datasets input to SPADE and FLOW-MAP do not come with a ``ground truth'' density.  SPADE arbitrarily chooses $r$ to be a user-selected parameter $\alpha$ times the median 1-nearest neighbor distance between a randomly selected subset of 2000 data points. Using this heuristic on our synthesized datasets corresponds to the grey dotted lines in Figure \ref{fig:ddd_results}.  While this heuristic works for the 10 dimensional case, it clearly results in a suboptimal density estimation in 2 and 50 dimensions, and we have no reason to believe it generalizes to arbitrary datasets. The K-Nearest Neighbor estimator avoids this ``needle in a haystack’’ parameter selection problem.
 
 Figure \ref{fig:ddd_results} also indicates that using $L1$ distance results in a wider range of high-accuracy values of $r$ for the Radius Threshold estimation algorithm, but that the choice of distance metric does not have a major effect on density estimation accuracy for the K-Nearest Neighbor algorithm.  This further supports the stability of the K-Nearest Neighbor algorithm.  
 
 \begin{figure*}
 \begin{center}
-\subfigure[50-Dimensions]{
-	\includegraphics[width = 0.49\textwidth]{figures/r-sphere-50D-blobs.pdf}
-   \includegraphics[width = 0.49\textwidth]{figures/k-nearest-50D-blobs.pdf}
-   \label{fig:ddd_results_50d}
+\subfigure[2-Dimensions]{
+	\includegraphics[width = 0.49\textwidth]{figures/rho_r-sphere_(2D).pdf}
+   \includegraphics[width = 0.49\textwidth]{figures/rho_k-nearest_(2D).pdf}
+   \label{fig:ddd_results_2d}
  }
 
 \subfigure[10-Dimensions]{
-	\includegraphics[width = 0.49\textwidth]{figures/r-sphere-10D-blobs.pdf}
-   \includegraphics[width = 0.49\textwidth]{figures/k-nearest-10D-blobs.pdf}
+	\includegraphics[width = 0.49\textwidth]{figures/rho_r-sphere_(10D).pdf}
+   \includegraphics[width = 0.49\textwidth]{figures/rho_k-nearest_(10D).pdf}
+   \label{fig:ddd_results_10d}
+ }
+
+\subfigure[50-Dimensions]{
+	\includegraphics[width = 0.49\textwidth]{figures/rho_r-sphere_(50D).pdf}
+   \includegraphics[width = 0.49\textwidth]{figures/rho_k-nearest_(50D).pdf}
    \label{fig:ddd_results_50d}
  }
 
-\caption{CAPTION}
+\caption{Spearman correlation coefficients of predicted density to ground-truth density using the Radius Threshold (r-sphere) and K-Nearest Neighbors density estimators on synthesized datasets in 2, 10 and 50 dimensions over a range of $r$ and $k$ parameter values. Higher correlation correficients indicate a higher accuracy predicted density. }
 \label{fig:ddd_results}
 \end{center}
 \end{figure*}
 
-FINAL TAKEAWAY?
+To demonstrate that replacing the Radius Threshold density estimator with the K-Nearest Neighbor estimator would improve the behavior of SPADE, we performed density dependent downsampling using both estimators (WHICH DISTANCE?) on a synthesized dataset (Figure \ref{fig:ddd_effects}).  Notice that  Radius Threshold estimator downsampling results in ``clumps'' of high density (red) points in random locations that do not correspond to high-density clusters in the original data.   In comparison, K-Nearest Neighbor estimator downsampling results in a much more uniform sampled dataset which is a better representation of the origial to pass to successive components of the algorithm. 
 
 \begin{figure}
 \begin{center}
@@ -240,7 +249,7 @@ FINAL TAKEAWAY?
    \label{fig:ddd_effects_k}
  }
 
-\caption{CAPTION}
+\caption{Comparison of density dependent downsampling on a sample dataset (\textit{top}) performed with the Radius Threshold density estimation algorithm (\textit{middle}) and the K-Nearest Neighbor density estimation algorithm (\textit{bottom}).}
 \label{fig:ddd_effects}
 \end{center}
 \end{figure}
