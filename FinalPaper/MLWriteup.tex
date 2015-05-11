@@ -78,32 +78,56 @@ ABSTRACT ABSTRACT ABSTRACT
 \label{sec:introduction}
 Recent advances in computational biology have been driven by the development of experimental techniques that generate large datasets and corresponding machine learning algorithms for data analysis and interpretation.  
 
-Mass cytometry is a particularly exciting modern technique that allows researchers to measure more than fifty molecular properties of millions of individual cells per experiment \cite{}.  Researchers can identify cell population heterogeneities ranging in scope from individual cells to complex hierarchical subpopulations. Such precision enables more detailed studies of many medically relevant phenomena, including identifying individual cells in specific disease states \cite{}, classifying cellular subpopulations by response to signalling perturbations \cite{}, understanding cellular reprogramming processes \cite{}, and investigating the natural heterogeneity of healthy systems \cite{}.  
+Mass cytometry is a particularly exciting modern technique that allows researchers to measure more than fifty molecular properties of millions of individual cells per experiment \cite{}.
+  Researchers can identify cell population heterogeneities ranging in scope from individual cells to complex hierarchical subpopulations. 
+Such precision enables more detailed studies of many medically relevant phenomena, including identifying individual cells in specific disease states \cite{}, classifying cellular subpopulations by response to signalling perturbations \cite{}, understanding cellular reprogramming processes \cite{}, and investigating the natural heterogeneity of healthy systems \cite{}.  
 
-However, the effectiveness of mass cytometry as an experimental tool depends on correctly interpreting the resulting high-dimensional datasets. To assist with data interpretation, researchers develop machine learning algorithms to calculate summary statistics or generate low-dimensional visualizations of raw data. In the case of mass cytometry, researchers are typically interested in three main analysis tasks, each corresponding to a machine learning task with biologically relevant constraints:
+However, the effectiveness of mass cytometry as an experimental tool depends on correctly interpreting the resulting high-dimensional datasets. 
+To assist with data interpretation, researchers develop machine learning algorithms to calculate summary statistics or generate low-dimensional visualizations of raw data.
+ In the case of mass cytometry, researchers are typically interested in three main analysis tasks, each corresponding to a machine learning task:
+% with biologically relevant constraints:
 
-%\begin{table}[H]
-%\begin{tabular}{p{0.2\linewidth}|p{0.2\linewidth}|p{0.2\linewidth}|p{0.2\linewidth}}
-%\textbf{Analysis Goal} & \textbf{Machine Learning Task} & \textbf{Biological Constraints} & \textbf{Example Application}\\
-\begin{enumerate}
-\item Identifying and characterizing rare cellular subtypes -- Clustering --
-Sensitivity to small clusters -- Identifying minimal residual disease 
+\begin{table}[H]
+\small
+\begin{tabular}{|p{0.3\linewidth}|p{0.25\linewidth}|p{0.27\linewidth}|}%|p{0.2\linewidth}}
+\hline
+\textbf{Analysis Goal} & \textbf{Machine Learning Task} & 
+%\textbf{Biological Constraints} & 
+\textbf{Example Application}\\ \hline
 
-\item Describe relations between cellular subtypes -- Structured output prediction -- Should not distort or artificially introduce structure into the results --  Monitoring clonal evolution in cancer 
+Identifying and characterizing rare cellular subtypes & Clustering
+%&Sensitivity to small clusters 
+& Identifying minimal residual disease \\ \hline
 
-\item Create human-readable representations to aid interpretation -- Low-dimensional embedding -- representations should be in 2D or 3D, either by means of a single structure-preserving projection or by decomposition into many low-dimensional projections -- Generating visual summaries for clinicians 
-\end{enumerate}
-%\end{tabular}
-%\end{table}
+ Describe relations between cellular subtypes & Structured output prediction 
+%& Should not distort or artificially introduce structure into the results 
+&  Monitoring clonal evolution in cancer \\ \hline
 
-Several domain-specific algorithms have been developed to address these analysis tasks, most notably SPADE \cite{}, FLOW-MAP \cite{}, Wanderlust \cite{}, DREMI/DREVI \cite{}, and viSNE \cite{}.  However, some limitations of these algorithms indicate the need for improved solutions.  First, none of these methods can be easily related to an underlying probabilistic model. This makes them prone to unpredictable structure-distorting behavior which can lead to misleading outputs. Second, these methods do not quantify how confident researchers should be when using the result to support experimental conclusions.
+ Create human-readable representations to aid interpretation &Low-dimensional embedding
+% & representations should be in 2D or 3D, either by means of a single structure-preserving projection or by decomposition into many low-dimensional projections
+& Generating visual summaries for clinicians \\
+\hline
+\end{tabular}
+\end{table}
 
-Here, we investigate SPADE, a widely used mass cytometry analysis algorithm,  and comment on its inconsistencies when applied to generated datasets with known ground truth (\S\ref{sec:spade}). This analysis indicates that SPADE may generate inaccurate results when applied to real datasets, suggesting the need for improvements.  We also propose an alternative algorithm to perform density estimation for the density-dependent downsampling component of SPADE  (\S\ref{sec:downsampling}) that results in more accurate downsamplings with greater stability over its parameter space. Finally, we describe an alternative approach to producing low-dimensional embeddings under constraints simlar to those assumed by existing cytometry analysis algorithms (\S\ref{sec:approximate_tpe}).   MORE ABOUT APPROX TPE. 
+Several domain-specific algorithms have been developed to address these analysis tasks, most notably SPADE \cite{}, FLOW-MAP \cite{}, Wanderlust \cite{}, DREMI/DREVI \cite{}, and viSNE \cite{}. 
+ However, some limitations of these algorithms indicate the need for improved solutions. 
+ First, none of these methods can be easily related to an underlying probabilistic model. 
+This makes them prone to unpredictable structure-distorting behavior which can lead to misleading outputs.
+Second, these methods do not quantify how confident researchers should be when using the result to support experimental conclusions.
+
+Here, we investigate SPADE, a widely used mass cytometry analysis algorithm,  and comment on its inconsistencies when applied to generated datasets with known ground truth (\S\ref{sec:spade}). 
+This analysis indicates that SPADE may generate inaccurate results when applied to real datasets, suggesting the need for improvements.  
+We also propose an alternative algorithm to perform density estimation for the density-dependent downsampling component of SPADE  (\S\ref{sec:downsampling}) that results in more accurate downsamplings with greater stability over its parameter space.
+ Finally, we describe an alternative approach to producing low-dimensional embeddings under constraints simlar to those assumed by existing cytometry analysis algorithms (\S\ref{sec:approximate_tpe}). 
+  MORE ABOUT APPROX TPE. 
 
 
 \section{SPADE Inconsistency Analysis}
 \label{sec:spade}
-SPADE, or Spanning-tree Progression Analysis of Density-normalized Events \cite{} is a popular and influential algorithm for automating cell sub-population identification and visualization, directly from high-dimensional raw datasets. SPADE  (Figure~\ref{fig:spade_overview}) consists of the following multi-step data processing pipeline:
+SPADE, or Spanning-tree Progression Analysis of Density-normalized Events \cite{} is a popular and influential algorithm for automating cell sub-population identification and visualization, directly from high-dimensional raw datasets.
+
+ SPADE  (Figure~\ref{fig:spade_overview}) consists of the following multi-step data processing pipeline:
 
 \begin{enumerate}
 \item \textbf{Density Dependent Downsampling}: This simultaneously reduces computational load, and also ensures that rare cell sub-populations are not overshadowed by dominant larger cell clusters. 
@@ -112,9 +136,11 @@ SPADE, or Spanning-tree Progression Analysis of Density-normalized Events \cite{
 
 \item \textbf{Cluster-preserving Up-sampling} Data omitted during downsampling is then assigned to identified sub-population clusters by a k-nearest-neighbors classifier.
 
-\item \textbf{Minimum Spanning Tree Construction} To better understand relations between different subpopulations, a complete graph is constructed on the data with each cluster represented by its centroid and edge weights corresponding to Euclidean distance.  A minimum spanning tree is then computed on this underlying graph to pinpoint clusters which are especially ‘close’ to each other.
+\item \textbf{Minimum Spanning Tree Construction} To better understand relations between different subpopulations, a complete graph is constructed on the data with each cluster represented by its centroid and edge weights corresponding to Euclidean distance.  
+A minimum spanning tree is then computed on this underlying graph to pinpoint clusters which are especially ‘close’ to each other.
  
-\item \textbf{Two Dimensional Embedding} To further aid visualization, the minimum spanning tree is then embedded in two dimensions using force-directed layout \cite{}. A plot of this embedding is then generated as the final output of SPADE.
+\item \textbf{Two Dimensional Embedding} To further aid visualization, the minimum spanning tree is then embedded in two dimensions using force-directed layout \cite{}. 
+A plot of this embedding is then generated as the final output of SPADE.
 \end{enumerate}
 
 \begin{figure}
@@ -129,9 +155,13 @@ SPADE, or Spanning-tree Progression Analysis of Density-normalized Events \cite{
 
 While SPADE is a significant improvement over previous manual data analysis techniques, 
 %several fundamental components of the underlying algorithm
-we are concerned that its  sub-component algorithms and ad-hoc parameter settings may lead to inconsistent and potentially misleading outputs.  Because biologists interpret SPADE visualizations to support or refute hypotheses, it is important that SPADE and related cytometry analysis algorithms  yield reproducible results and do not  inject structure into visualizations that do not exist in the raw data. 
+we are concerned that its  sub-component algorithms and ad-hoc parameter settings may lead to inconsistent and potentially misleading outputs.  
+Because biologists interpret SPADE visualizations to support or refute hypotheses, it is important that SPADE and related cytometry analysis algorithms  yield reproducible results and do not  inject structure into visualizations that do not exist in the raw data. 
 
-We examined the behavior of SPADE by generating synthetic datasets and comparing their known ground-truth structure to SPADE output visualizations.  Figure \ref{fig:spade_analysis} presents the results of this analysis for a particular 2-dimensional dataset with clear spatial structure.  Nine consecutive runs of SPADE on this dataset with the same parameters yielded the visualizations shown---all with wildly different trees and nont with the clear ``X'' shaped structure present in the input data.  % constructed by sampling points from  mixtures of Gaussian distributions in two dimensions.% centered at several cluster centers. 
+We examined the behavior of SPADE by generating synthetic datasets and comparing their known ground-truth structure to SPADE output visualizations. 
+ Figure \ref{fig:spade_analysis} presents the results of this analysis for a particular 2-dimensional dataset with clear spatial structure. 
+ Nine consecutive runs of SPADE on this dataset with the same parameters yielded the visualizations shown---all with wildly different trees and nont with the clear ``X'' shaped structure present in the input data. 
+ % constructed by sampling points from  mixtures of Gaussian distributions in two dimensions.% centered at several cluster centers. 
  
 %We see that artificial structure is imposed when there is none
 
@@ -162,23 +192,32 @@ We examined the behavior of SPADE by generating synthetic datasets and comparing
 
 This example, which corroborates with the results of similar analyses (not shown), indicates that SPADE performs inconsistently and inaccurately on even simple synthetic datasets. 
 %While such datasets might not be identical to the single cell datasets on which SPADE is most commonly used,
- SPADE's inability to recover the structure of simple constructed example data makes us hesitate to trust its visualizations on much more complex single-cell data. The popularity of SPADE as a general-purpose cytometry analysis tool for a wide range of experiments means that it should be much more robust to variations in input data than our experiments indicate. 
+ SPADE's inability to recover the structure of simple constructed example data makes us hesitate to trust its visualizations on much more complex single-cell data. 
+The popularity of SPADE as a general-purpose cytometry analysis tool for a wide range of experiments means that it should be much more robust to variations in input data than our experiments indicate. 
 
 
 
 \section{Density-Dependent Downsampling}
 \label{sec:downsampling}
-Both SPADE and FLOW-MAP algorithms for analyzing mass cytometry data involve density-dependent downsampling as a step in the data processing pipeline. This entails randomly omitting a subset of data points such that the probability of omitting a given point is positively correlated with the point’s local density in the full dataset.  Density-dependent downsampling is intended to serve two purposes:  First, it should increase the sensitivity to small clusters in successive clustering steps. Second, it should reduce computation cost of subsequent steps by reducing the overall number of points passed to the rest of the algorithm.
+Both SPADE and FLOW-MAP algorithms for analyzing mass cytometry data involve density-dependent downsampling as a step in the data processing pipeline. 
+This entails randomly omitting a subset of data points such that the probability of omitting a given point is positively correlated with the point’s local density in the full dataset. 
+ Density-dependent downsampling is intended to serve two purposes:  First, it should increase the sensitivity to small clusters in successive clustering steps.
+ Second, it should reduce computation cost of subsequent steps by reducing the overall number of points passed to the rest of the algorithm.
 
-Density-dependent downsampling requires a way to estimate the local density at a point $p$, $D(p)$, to determine the probability of including $p$ in the sampled subset.  SPADE and FLOW-MAP estimate $D(p)$ by counting the number of points within a threshold L1-distance $r$ of $p$. However, this density estimation technique is inadequately justified.
+Density-dependent downsampling requires a way to estimate the local density at a point $p$, $D(p)$, to determine the probability of including $p$ in the sampled subset. 
+ SPADE and FLOW-MAP estimate $D(p)$ by counting the number of points within a threshold L1-distance $r$ of $p$. However, this density estimation technique is inadequately justified.
 
-To compare the accuracy of multiple density estimation algorithms, we performed numerical experiments with generated synthetic datasets. First, we drew 5000 points from a scikit-learn kernel density estimator \cite{} fit to distinct cluster centers in 2, 10, and 50 dimensions (e.g. Figure \ref{fig:ddd_data_2d}). The “ground truth” local density for each point was calculated by scoring the points using the fit kernel density estimator.  We then compared these ground truth densities to the output of four potential density estimation algorithms:
+To compare the accuracy of multiple density estimation algorithms, we performed numerical experiments with generated synthetic datasets.
+ First, we drew 5000 points from a scikit-learn kernel density estimator \cite{} fit to distinct cluster centers in 2, 10, and 50 dimensions (e.g. Figure \ref{fig:ddd_data_2d}).
+ The “ground truth” local density for each point was calculated by scoring the points using the fit kernel density estimator. 
+ We then compared these ground truth densities to the output of four potential density estimation algorithms:
 
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.35\textwidth]{Figures/ddd_data_2d.png}
 \end{center}
-\caption{Example 2-dimensional synthetic dataset generated for density estimation algorithm analysis.  Point color corresponds to ``ground truth" local density.}
+\caption{Example 2-dimensional synthetic dataset generated for density estimation algorithm analysis. 
+ Point color corresponds to ``ground truth" local density.}
 \label{fig:ddd_data_2d}
 \end{figure}
 
@@ -195,13 +234,22 @@ To compare the accuracy of multiple density estimation algorithms, we performed 
 
 \end{enumerate}
 
-Figure \ref{fig:ddd_results} shows algorithm performance for a range of parameter values $r$ and $k$ measured as the Spearman correlation coefficient $\rho$ of the predicted density versus the ground truth density.   Specific results of interest are the maximum $\rho$ value for each algorithm (indicating the approximate maximum accuracy of the algorithm on this particular dataset), the range of parameter values corresponding to high $\rho$ coefficients, and the general trend of the $\rho$ values over the parameter space. 
+Figure \ref{fig:ddd_results} shows algorithm performance for a range of parameter values $r$ and $k$ measured as the Spearman correlation coefficient $\rho$ of the predicted density versus the ground truth density.  
+ Specific results of interest are the maximum $\rho$ value for each algorithm (indicating the approximate maximum accuracy of the algorithm on this particular dataset), the range of parameter values corresponding to high $\rho$ coefficients, and the general trend of the $\rho$ values over the parameter space. 
 
-Both the  Radius Threshold and K-Nearest Neighbor density estimators have maximum $\rho$ values near 1 in all three dimensions. However, the K-Nearest Neighbor estimator provides stably accurate estimates with $k$ ranging from $<2\%$ to $20\%$ of the number of points in the dataset, while the accuracy of the Radius Threshold estimator peaks in a narrow range of values of $r$. 
+Both the  Radius Threshold and K-Nearest Neighbor density estimators have maximum $\rho$ values near 1 in all three dimensions. 
+However, the K-Nearest Neighbor estimator provides stably accurate estimates with $k$ ranging from $<2\%$ to $20\%$ of the number of points in the dataset, while the accuracy of the Radius Threshold estimator peaks in a narrow range of values of $r$. 
  % and accuracy monotonically increasing with $k$. 
-This stability to parameter setting would make the K-Nearest Neighbor estimator a better choice for algorithms such as SPADE and FLOW-MAP.  This is especially true considering the difficulty of choosing an appropriate value of $r$ or $k$ given an experimental dataset.  Unlike the synthesized datasets used for algorithm analysis, cytometry datasets input to SPADE and FLOW-MAP do not come with a ``ground truth'' density.  SPADE arbitrarily chooses $r$ to be a user-selected parameter $\alpha$ times the median 1-nearest neighbor distance between a randomly selected subset of 2000 data points. Using this heuristic on our synthesized datasets corresponds to the grey dotted lines in Figure \ref{fig:ddd_results}.  While this heuristic works for the 10 dimensional case, it clearly results in a suboptimal density estimation in 2 and 50 dimensions, and we have no reason to believe it generalizes to arbitrary datasets. The K-Nearest Neighbor estimator avoids this ``needle in a haystack’’ parameter selection problem.
+This stability to parameter setting would make the K-Nearest Neighbor estimator a better choice for algorithms such as SPADE and FLOW-MAP.  
+This is especially true considering the difficulty of choosing an appropriate value of $r$ or $k$ given an experimental dataset. 
+ Unlike the synthesized datasets used for algorithm analysis, cytometry datasets input to SPADE and FLOW-MAP do not come with a ``ground truth'' density.  
+SPADE arbitrarily chooses $r$ to be a user-selected parameter $\alpha$ times the median 1-nearest neighbor distance between a randomly selected subset of 2000 data points. 
+Using this heuristic on our synthesized datasets corresponds to the grey dotted lines in Figure \ref{fig:ddd_results}.  
+While this heuristic works for the 10 dimensional case, it clearly results in a suboptimal density estimation in 2 and 50 dimensions, and we have no reason to believe it generalizes to arbitrary datasets. 
+The K-Nearest Neighbor estimator avoids this ``needle in a haystack’’ parameter selection problem.
 
-Figure \ref{fig:ddd_results} also indicates that using $L1$ distance results in a wider range of high-accuracy values of $r$ for the Radius Threshold estimation algorithm, but that the choice of distance metric does not have a major effect on density estimation accuracy for the K-Nearest Neighbor algorithm.  This further supports the stability of the K-Nearest Neighbor algorithm.  
+Figure \ref{fig:ddd_results} also indicates that using $L1$ distance results in a wider range of high-accuracy values of $r$ for the Radius Threshold estimation algorithm, but that the choice of distance metric does not have a major effect on density estimation accuracy for the K-Nearest Neighbor algorithm. 
+ This further supports the stability of the K-Nearest Neighbor algorithm.  
 
 \begin{figure*}
 \begin{center}
@@ -223,12 +271,15 @@ Figure \ref{fig:ddd_results} also indicates that using $L1$ distance results in 
    \label{fig:ddd_results_50d}
  }
 
-\caption{Spearman correlation coefficients of predicted density to ground-truth density using the Radius Threshold (r-sphere) and K-Nearest Neighbors density estimators on synthesized datasets in 2, 10 and 50 dimensions over a range of $r$ and $k$ parameter values. Higher correlation correficients indicate a higher accuracy predicted density. }
+\caption{Spearman correlation coefficients of predicted density to ground-truth density using the Radius Threshold (r-sphere) and K-Nearest Neighbors density estimators on synthesized datasets in 2, 10 and 50 dimensions over a range of $r$ and $k$ parameter values. 
+Higher correlation correficients indicate a higher accuracy predicted density. }
 \label{fig:ddd_results}
 \end{center}
 \end{figure*}
 
-To demonstrate that replacing the Radius Threshold density estimator with the K-Nearest Neighbor estimator would improve the behavior of SPADE, we performed density dependent downsampling using both estimators (WHICH DISTANCE?) on a synthesized dataset (Figure \ref{fig:ddd_effects}).  Notice that  Radius Threshold estimator downsampling results in ``clumps'' of high density (red) points in random locations that do not correspond to high-density clusters in the original data.   In comparison, K-Nearest Neighbor estimator downsampling results in a much more uniform sampled dataset which is a better representation of the origial to pass to successive components of the algorithm. 
+To demonstrate that replacing the Radius Threshold density estimator with the K-Nearest Neighbor estimator would improve the behavior of SPADE, we performed density dependent downsampling using both estimators (WHICH DISTANCE?) on a synthesized dataset (Figure \ref{fig:ddd_effects}).
+  Notice that  Radius Threshold estimator downsampling results in ``clumps'' of high density (red) points in random locations that do not correspond to high-density clusters in the original data.
+  In comparison, K-Nearest Neighbor estimator downsampling results in a much more uniform sampled dataset which is a better representation of the origial to pass to successive components of the algorithm. 
 
 \begin{figure}
 \begin{center}
