@@ -40,7 +40,10 @@ def plot_estimator_pred(samples,density,estimator,params,
 def sweep_estimator_accuracy(samples, density, estimator, sweep, render=False):
     # to-do: produce plot
     # return the curves
+    from scipy.stats import spearmanr
+
     result_r2 = []
+    result_spearman = []
     result_mutual_info = []
     d = np.vstack(density)
     for s in sweep:
@@ -49,8 +52,10 @@ def sweep_estimator_accuracy(samples, density, estimator, sweep, render=False):
       linearModel = LinearRegression()
       linearModel.fit(pd,d)
       r2 = linearModel.score(pd,d)
+      spearman = spearmanr(pd,d)
       #mutual_info = mutual_info_score(density, pred_density)
       result_r2.append(r2)
+      result_spearman.append(spearman[0])
       #result_mutual_info.append(mutual_info)
 
     if render:
@@ -59,7 +64,7 @@ def sweep_estimator_accuracy(samples, density, estimator, sweep, render=False):
       plt.ylabel(r'$R^2$ Score', fontsize=14)
       plt.ylim((0,1))
       plt.grid()
-    return result_r2
+    return result_r2,result_spearman
     #plt.figure()
     #plt.plot(sweep, result_mutual_info)
 
@@ -81,9 +86,10 @@ def main():
 
     #r = [0.01,0.1,0.25,0.5,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0] #np.arange(0.01, 3, 0.1) #[0.01,0.1,0.25,0.5,1.0,2.0]
     #r = np.hstack((np.arange(0,5,5),np.arange(5,10,0.5),np.arange(10,25,5),np.arange(25,56,2)))
-    r = np.arange(0,60,0.1)
+    #r = np.arange(0,20,0.1) # for 2D or 10D
+    r = np.arange(0,80,0.1) # for 50D
 
-    k = np.arange(1,200,10)
+    k = list(range(1,11)) + [15,20] + list(range(30,500)[::50])
     #k = [1,5,10,50,100,200] #np.arange(1,500,15) #[1,5,10,50,100,200]
 
     #r_spade = np.array([determine_r(samples) for _ in range(100)])
@@ -113,17 +119,18 @@ def main():
     plot_estimator_pred(samples, density, local_density_r, r, 'r')
     plt.title('r-sphere, L2')'''
 
-    l1_k = sweep_estimator_accuracy(samples, density, lambda x, kk: local_density_k_transformed(x,kk,'l1'), k)
-    l2_k = sweep_estimator_accuracy(samples, density, local_density_k_transformed, k)
+    _,l1_k = sweep_estimator_accuracy(samples, density, lambda x, kk: local_density_k_transformed(x,kk,'l1'), k)
+    _,l2_k = sweep_estimator_accuracy(samples, density, local_density_k_transformed, k)
     #l1_k = sweep_estimator_accuracy(np.sort(l1_distmat,1), density, lambda x, kk: local_density_k_transformed(x,kk,'precomputed',True), k)
     #l2_k = sweep_estimator_accuracy(np.sort(l2_distmat,1), density, lambda x, kk: local_density_k_transformed(x,kk,'precomputed',True), k)
     plt.figure()
     plt.plot(k,l1_k,label=r'$\ell_1$',linewidth=2)
     plt.plot(k,l2_k,label=r'$\ell_2$',linewidth=2)
     plt.title(r'$k$-nearest-based density-estimator accuracy')
-    plt.legend()
+    plt.legend(loc='best')
     plt.xlabel(r'$k$')
-    plt.ylabel(r'$R^2$')
+    plt.ylabel(r"Spearman's $\rho$")
+    #plt.ylabel(r'$R^2$')
     plt.ylim(0,1)
     #plt.show()
     plt.savefig('../figures/paper/density-estimation/k-nearest.pdf')
@@ -132,16 +139,17 @@ def main():
     #l1_r = sweep_estimator_accuracy(samples, density, lambda x, rr: local_density_r(x,rr,'l1'), r)
     #l2_r = sweep_estimator_accuracy(samples, density, local_density_r, r)
 
-    l1_r = sweep_estimator_accuracy(l1_distmat, density, lambda x, rr: local_density_r(x,rr,'precomputed'), r)
-    l2_r = sweep_estimator_accuracy(l2_distmat, density, lambda x, rr: local_density_r(x,rr,'precomputed'), r)
+    _,l1_r = sweep_estimator_accuracy(l1_distmat, density, lambda x, rr: local_density_r(x,rr,'precomputed'), r)
+    _,l2_r = sweep_estimator_accuracy(l2_distmat, density, lambda x, rr: local_density_r(x,rr,'precomputed'), r)
 
     plt.plot(r,l1_r,label=r'$\ell_1$',linewidth=2)
     plt.plot(r,l2_r,label=r'$\ell_2$',linewidth=2)
     plt.title(r'$r$-sphere-based density-estimator accuracy')
     plt.vlines(r_spade,0,1,linestyle='--',label=r'$r$ selected by SPADE')
-    plt.legend()
+    plt.legend(loc='best')
     plt.xlabel(r'$r$')
-    plt.ylabel(r'$R^2$')
+    plt.ylabel(r"Spearman's $\rho$")
+    #plt.ylabel(r'$R^2$')
 
     plt.ylim(0,1)
     #plt.show()

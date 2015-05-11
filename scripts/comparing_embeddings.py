@@ -6,6 +6,7 @@ from sklearn import neighbors
 from scipy.cluster import hierarchy
 from scipy.spatial import distance
 from scipy.spatial.distance import squareform,pdist
+from scipy.stats import spearmanr
 
 def one_nn_class_baseline(X,labels):
     ''' given a pointcloud X and labels, compute the classification accuracy of
@@ -15,8 +16,8 @@ def one_nn_class_baseline(X,labels):
     inds = np.zeros(len(X),dtype=int)
     for i in range(len(X)):
         inds[i] = [ind for ind in one_nn[i].indices if ind != i][0]
-    preds = Y[inds]
-    return 1.0*sum(preds==Y) / len(Y)
+    preds = labels[inds]
+    return 1.0*sum(preds==labels) / len(labels)
 
 def one_nn_baseline(X,Y):
     ''' given two clouds of corresponding points, X and Y, report the fraction
@@ -112,7 +113,7 @@ def plot_1nn_classification_comparison():
 
 # metrics of cluster preservation
 
-linkages = ['single','complete','ward','average','weighted','centroid','median']
+all_linkages = ['single','complete','ward','average','weighted','centroid','median']
 
 def pairwise_cophenetic_distances(X,linkage='single'):
     return hierarchy.cophenet(hierarchy.linkage(X,linkage))
@@ -121,3 +122,9 @@ def cophenetic_distance_preservation(orig,embedding,linkage='single'):
     orig_d = pairwise_cophenetic_distances(orig,linkage)
     embed_d = pairwise_cophenetic_distances(embedding,linkage)
     return spearmanr(orig_d,embed_d)
+
+def multi_linkage_cophenetic_preservation(orig,embedding,linkages=all_linkages):
+    results = np.zeros(len(linkages))
+    for i,linkage in enumerate(linkages):
+        results[i] = cophenetic_distance_preservation(orig,embedding,linkage)[0]
+    return results
